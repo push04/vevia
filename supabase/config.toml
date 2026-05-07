@@ -1,0 +1,11 @@
+project_id = "vevia"
+
+[api]
+enabled = true
+
+[db]
+major_version = 15
+
+[studio]
+enabled = true
+

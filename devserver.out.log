@@ -1,0 +1,21 @@
+
+> vevia@0.1.0 dev C:\Users\pushp\OneDrive\Desktop\parakh ai\vevia
+> next dev "--port" "3000"
+
+▲ Next.js 16.2.5 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://10.0.4.88:3000
+- Environments: .env.local
+✓ Ready in 1694ms
+
+ GET /api/health 200 in 598ms (next.js: 312ms, proxy.ts: 265ms, application-code: 20ms)
+○ Compiling / ...
+ GET / 200 in 20.0s (next.js: 18.8s, proxy.ts: 14ms, application-code: 1159ms)
+✓ Compiled in 154ms
+ GET / 200 in 903ms (next.js: 174ms, proxy.ts: 144ms, application-code: 585ms)
+ GET /login 200 in 1348ms (next.js: 1138ms, proxy.ts: 14ms, application-code: 196ms)
+ GET /jobs 307 in 1557ms (next.js: 1326ms, proxy.ts: 12ms, application-code: 218ms)
+ GET /dashboard 307 in 1108ms (next.js: 965ms, proxy.ts: 9ms, application-code: 134ms)
+ GET /jobs/1/candidates 307 in 4.2s (next.js: 4.0s, proxy.ts: 21ms, application-code: 205ms)
+✓ Compiled in 321ms
+  Reload env: .env.local

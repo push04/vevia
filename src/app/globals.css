@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+html, body { height: 100%; }
+body { margin: 0; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #c2c7d1; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #727780; }
+
+/* ── Animations ── */
+@layer utilities {
+  @keyframes vevia-float {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    50%       { transform: translate3d(0, -12px, 0); }
+  }
+  @keyframes vevia-float-2 {
+    0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+    33%       { transform: translate3d(4px, -8px, 0) rotate(1deg); }
+    66%       { transform: translate3d(-4px, -14px, 0) rotate(-1deg); }
+  }
+  @keyframes vevia-drawer-in {
+    from { transform: translate3d(-16px, 0, 0); opacity: 0; }
+    to   { transform: translate3d(0, 0, 0); opacity: 1; }
+  }
+  @keyframes vevia-fade-up {
+    from { transform: translateY(16px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes vevia-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes vevia-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  @keyframes vevia-pulse-ring {
+    0%   { box-shadow: 0 0 0 0 rgba(0,53,95,0.3); }
+    70%  { box-shadow: 0 0 0 10px rgba(0,53,95,0); }
+    100% { box-shadow: 0 0 0 0 rgba(0,53,95,0); }
+  }
+
+  .animate-float-slow    { animation: vevia-float 7s ease-in-out infinite; }
+  .animate-float-slower  { animation: vevia-float-2 10s ease-in-out infinite; }
+  .animate-drawer-in     { animation: vevia-drawer-in 180ms ease-out both; }
+  .animate-fade-up       { animation: vevia-fade-up 400ms ease-out both; }
+  .animate-fade-in       { animation: vevia-fade-in 300ms ease-out both; }
+  .animate-spin          { animation: vevia-spin 1s linear infinite; }
+  .animate-pulse-ring    { animation: vevia-pulse-ring 2s ease-out infinite; }
+
+  /* line-clamp utilities */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .line-clamp-4 {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Focus visible improvement */
+  *:focus-visible {
+    outline: 2px solid #2d6197;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Smooth transitions globally */
+  a, button { transition-property: color, background-color, border-color, box-shadow, transform, opacity; transition-duration: 150ms; transition-timing-function: ease; }
+}
