@@ -16,14 +16,21 @@ export async function getCandidateContext(): Promise<CandidateContext> {
 
   const email = userData.user.email ?? "";
   const authUserId = userData.user.id;
-
-  // Look up candidate by email (no org_id required)
   const admin = createAdminClient();
-  const { data: candidate } = await admin
+
+  let candidate = await admin
     .from("candidates")
     .select("id, full_name")
-    .eq("email", email)
-    .maybeSingle();
+    .eq("user_id", authUserId)
+    .maybeSingle().then(r => r.data);
+
+  if (!candidate && email) {
+    candidate = await admin
+      .from("candidates")
+      .select("id, full_name")
+      .eq("email", email)
+      .maybeSingle().then(r => r.data ?? null);
+  }
 
   return {
     authUserId,
@@ -39,15 +46,25 @@ export async function getOptionalCandidateContext(): Promise<CandidateContext | 
   if (!userData?.user) return null;
 
   const email = userData.user.email ?? "";
+  const authUserId = userData.user.id;
   const admin = createAdminClient();
-  const { data: candidate } = await admin
+
+  let candidate = await admin
     .from("candidates")
     .select("id, full_name")
-    .eq("email", email)
-    .maybeSingle();
+    .eq("user_id", authUserId)
+    .maybeSingle().then(r => r.data);
+
+  if (!candidate && email) {
+    candidate = await admin
+      .from("candidates")
+      .select("id, full_name")
+      .eq("email", email)
+      .maybeSingle().then(r => r.data ?? null);
+  }
 
   return {
-    authUserId: userData.user.id,
+    authUserId,
     email,
     candidateId: candidate?.id ?? null,
     fullName: candidate?.full_name ?? null,

@@ -29,7 +29,7 @@ export default function CandidateLoginPage() {
         const { error: err } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: `${window.location.origin}/candidate/dashboard` },
+          options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/candidate/dashboard` },
         });
         if (err) throw err;
         setStatus("success");
