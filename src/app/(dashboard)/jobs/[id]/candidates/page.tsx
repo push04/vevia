@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 
 import { PipelineView, type ApplicationRow } from "@/components/pipeline/PipelineView";
 import { requireRecruiterContext } from "@/lib/auth/session";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 import { scoreApplicationAction } from "./actions";
 
@@ -13,7 +13,7 @@ export default async function JobCandidatesPage({
 }) {
   const ctx = await requireRecruiterContext();
   const { id: jobId } = await params;
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: job, error: jobError } = await supabase
     .from("jobs")

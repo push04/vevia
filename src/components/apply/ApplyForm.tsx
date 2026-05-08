@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 
 type Job = {
   id: string;
@@ -15,9 +16,11 @@ type Job = {
 };
 
 export function ApplyForm({ job, slug }: { job: Job; slug: string }) {
+  const router = useRouter();
   const [step, setStep] = useState<"form" | "uploading" | "success" | "error">("form");
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [submittedEmail, setSubmittedEmail] = useState<string>("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -28,6 +31,8 @@ export function ApplyForm({ job, slug }: { job: Job; slug: string }) {
     try {
       const form = e.currentTarget;
       const data = new FormData(form);
+      const emailField = form.querySelector<HTMLInputElement>("input[name=email]");
+      setSubmittedEmail(emailField?.value ?? "");
       const res = await fetch(`/api/apply/${slug}`, { method: "POST", body: data });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error ?? "Application failed");
@@ -46,8 +51,20 @@ export function ApplyForm({ job, slug }: { job: Job; slug: string }) {
         </div>
         <h2 className="font-display text-[24px] font-bold text-primary mb-xs">Application submitted!</h2>
         <p className="text-text-secondary text-sm max-w-[384px] mx-auto leading-relaxed">
-          Your resume has been parsed and scored by our AI. You will receive an email if you are shortlisted.
+          Your resume has been parsed and scored by our AI.
         </p>
+        <div className="mt-md p-md bg-blue-50 border border-blue-200 rounded-2xl text-left">
+          <h3 className="font-semibold text-blue-800 text-sm mb-xs">Track your application</h3>
+          <p className="text-blue-700 text-xs leading-relaxed">
+            Create an account to view your application status, AI scores, and more.
+          </p>
+          <button
+            onClick={() => router.push(`/candidate/login?email=${encodeURIComponent(submittedEmail)}`)}
+            className="mt-sm w-full bg-blue-600 text-white font-semibold text-sm py-sm px-md rounded-xl hover:bg-blue-700 transition-colors"
+          >
+            Create account / Sign in
+          </button>
+        </div>
         <div className="mt-md flex items-center justify-center gap-xs text-text-secondary text-xs">
           <span className="material-symbols-outlined text-[16px]">smart_toy</span>
           Powered by Vevia AI

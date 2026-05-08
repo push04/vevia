@@ -1,12 +1,12 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requireRecruiterContext } from "@/lib/auth/session";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export default async function CandidateDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const ctx = await requireRecruiterContext();
   const { id } = await params;
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: candidate, error } = await supabase
     .from("candidates")

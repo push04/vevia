@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { requireRecruiterContext } from "@/lib/auth/session";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 function formatMaybe(v: string | null | undefined) {
   return v && v.trim() ? v : null;
@@ -9,7 +9,7 @@ function formatMaybe(v: string | null | undefined) {
 
 export default async function CandidatesPage() {
   const ctx = await requireRecruiterContext();
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: candidates, error } = await supabase
     .from("candidates")

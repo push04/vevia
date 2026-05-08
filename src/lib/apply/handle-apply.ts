@@ -5,6 +5,7 @@ import { extractTextFromFile } from "@/lib/pdf/extract";
 import { parseResume } from "@/lib/groq/resume-parser";
 import { generateEmbedding } from "@/lib/embeddings/generate";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { scoreAnswer } from "@/lib/groq/answer-scorer";
 
 export async function handleApply(req: NextRequest, slug: string) {
   try {
@@ -149,6 +150,59 @@ export async function handleApply(req: NextRequest, slug: string) {
       .select()
       .single();
     if (applicationRes.error) throw new Error(applicationRes.error.message);
+
+    // Extract and score screening question answers
+    const sqFields = Array.from(formData.entries())
+      .filter(([key]) => key.startsWith("sq_"))
+      .sort(([a], [b]) => {
+        const ai = parseInt(a.replace("sq_", ""), 10);
+        const bi = parseInt(b.replace("sq_", ""), 10);
+        return ai - bi;
+      });
+    const questions = (Array.isArray(job.screening_questions) ? job.screening_questions : []) as { q: string; type: string; weight?: number; options?: { id: string; title: string; ideal: boolean }[]; preferred_yes?: boolean }[];
+    const screeningAnswers: { question: string; answer: string; score: number; reasoning: string; created_at: string }[] = [];
+    let screeningScoreSum = 0;
+    let screeningScoreCount = 0;
+
+    for (let i = 0; i < Math.min(sqFields.length, questions.length); i++) {
+      const answer = sqFields[i][1] as string;
+      const q = questions[i];
+      if (!answer || !q) continue;
+
+      // Simple scoring without Groq to avoid timeout
+      let score = 5;
+      let reasoning = "Saved for recruiter review";
+
+      if (q.type === "yes_no") {
+        const preferredYes = q.preferred_yes !== false;
+        const isYes = answer.toLowerCase() === "yes";
+        score = isYes === preferredYes ? 8 : 3;
+        reasoning = isYes === preferredYes ? "Matches preferred answer" : "Does not match preferred answer";
+      }
+
+      screeningAnswers.push({
+        question: q.q,
+        answer,
+        score,
+        reasoning,
+        created_at: new Date().toISOString(),
+      });
+      screeningScoreSum += score;
+      screeningScoreCount++;
+    }
+
+    if (screeningAnswers.length > 0) {
+      const avgScore = (screeningScoreSum / screeningScoreCount) * 10;
+      await supabase
+        .from("applications")
+        .update({
+          screening_answers: screeningAnswers as unknown as never,
+          screening_score: Math.round(avgScore * 100) / 100,
+        })
+        .eq("id", applicationRes.data.id);
+      applicationRes.data.screening_answers = screeningAnswers as never;
+      applicationRes.data.screening_score = Math.round((screeningScoreSum / screeningScoreCount) * 100) / 100;
+    }
 
     const { data: candidate, error: candidateFetchErr } = await supabase
       .from("candidates")

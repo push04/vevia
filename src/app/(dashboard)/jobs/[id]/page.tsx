@@ -1,13 +1,13 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requireRecruiterContext } from "@/lib/auth/session";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { ShareLinkButton } from "@/components/dashboard/ShareLinkButton";
 
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const ctx = await requireRecruiterContext();
   const { id: jobId } = await params;
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: job, error } = await supabase
     .from("jobs")

@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 export default function CandidateLoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const prefilledEmail = searchParams.get("email") ?? "";
   const [mode, setMode] = useState<"signIn" | "signUp">("signIn");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(prefilledEmail);
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +52,12 @@ export default function CandidateLoginPage() {
               {mode === "signIn" ? "Sign in to track your applications." : "Join Vevia to discover and apply to jobs."}
             </p>
           </div>
+
+          {prefilledEmail && mode === "signIn" && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700">
+              Create an account or sign in to track your application for <strong>{prefilledEmail}</strong>
+            </div>
+          )}
 
           {status === "success" ? (
             <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
