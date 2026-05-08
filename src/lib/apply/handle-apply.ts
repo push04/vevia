@@ -51,13 +51,72 @@ export async function handleApply(req: NextRequest, slug: string) {
       .upload(resumePath, fileBuffer, { contentType: file.type, upsert: false });
     if (uploadRes.error) throw new Error(uploadRes.error.message);
 
-    const candidateRes = await supabase
-      .from("candidates")
-      .upsert(
-        {
+    const candidateEmail = (email || parsed.email);
+    let candidateId: string;
+    if (candidateEmail) {
+      const { data: existing } = await supabase
+        .from("candidates")
+        .select("id")
+        .eq("email", candidateEmail)
+        .maybeSingle();
+      if (existing) {
+        candidateId = existing.id;
+        const { error: updateErr } = await supabase
+          .from("candidates")
+          .update({
+            full_name: fullName || parsed.full_name,
+            phone: phone || parsed.phone,
+            current_location: currentLocation || parsed.current_location,
+            current_company: parsed.current_company,
+            current_title: parsed.current_title,
+            total_experience: parsed.total_experience_years,
+            skills: parsed.skills,
+            education: parsed.education,
+            work_experience: parsed.work_experience,
+            resume_url: resumePath,
+            resume_raw_text: rawText,
+            resume_embedding: embedding ?? [],
+            languages: parsed.languages,
+            linkedin_url: parsed.linkedin_url,
+            github_url: parsed.github_url,
+            portfolio_url: parsed.portfolio_url,
+          })
+          .eq("id", candidateId);
+        if (updateErr) throw new Error(updateErr.message);
+      } else {
+        const { data: inserted, error: insertErr } = await supabase
+          .from("candidates")
+          .insert({
+            org_id: job.org_id,
+            full_name: fullName || parsed.full_name,
+            email: candidateEmail,
+            phone: phone || parsed.phone,
+            current_location: currentLocation || parsed.current_location,
+            current_company: parsed.current_company,
+            current_title: parsed.current_title,
+            total_experience: parsed.total_experience_years,
+            skills: parsed.skills,
+            education: parsed.education,
+            work_experience: parsed.work_experience,
+            resume_url: resumePath,
+            resume_raw_text: rawText,
+            resume_embedding: embedding ?? [],
+            languages: parsed.languages,
+            linkedin_url: parsed.linkedin_url,
+            github_url: parsed.github_url,
+            portfolio_url: parsed.portfolio_url,
+          })
+          .select("id")
+          .single();
+        if (insertErr) throw new Error(insertErr.message);
+        candidateId = inserted.id;
+      }
+    } else {
+      const { data: inserted, error: insertErr } = await supabase
+        .from("candidates")
+        .insert({
           org_id: job.org_id,
           full_name: fullName || parsed.full_name,
-          email: email || parsed.email,
           phone: phone || parsed.phone,
           current_location: currentLocation || parsed.current_location,
           current_company: parsed.current_company,
@@ -73,29 +132,36 @@ export async function handleApply(req: NextRequest, slug: string) {
           linkedin_url: parsed.linkedin_url,
           github_url: parsed.github_url,
           portfolio_url: parsed.portfolio_url,
-        },
-        { onConflict: "email" },
-      )
-      .select()
-      .single();
-    if (candidateRes.error) throw new Error(candidateRes.error.message);
+        })
+        .select("id")
+        .single();
+      if (insertErr) throw new Error(insertErr.message);
+      candidateId = inserted.id;
+    }
 
     const applicationRes = await supabase
       .from("applications")
       .insert({
         org_id: job.org_id,
         job_id: job.id,
-        candidate_id: candidateRes.data.id,
+        candidate_id: candidateId,
         status: "applied",
       })
       .select()
       .single();
     if (applicationRes.error) throw new Error(applicationRes.error.message);
 
+    const { data: candidate, error: candidateFetchErr } = await supabase
+      .from("candidates")
+      .select("*")
+      .eq("id", candidateId)
+      .single();
+    if (candidateFetchErr) throw new Error(candidateFetchErr.message);
+
     return NextResponse.json({
       success: true,
       job,
-      candidate: candidateRes.data,
+      candidate,
       application: applicationRes.data,
     });
   } catch (error) {
