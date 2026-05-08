@@ -137,6 +137,7 @@ export type Database = {
           screening_questions: Json | null;
           status: string | null;
           application_deadline: string | null;
+          visibility: string | null;
           chatbot_enabled: boolean | null;
           whatsapp_enabled: boolean | null;
           video_interview_required: boolean | null;
@@ -166,6 +167,7 @@ export type Database = {
           experience_max?: number | null;
           screening_questions?: Json | null;
           status?: string | null;
+          visibility?: string | null;
           application_deadline?: string | null;
           chatbot_enabled?: boolean | null;
           whatsapp_enabled?: boolean | null;
@@ -195,6 +197,7 @@ export type Database = {
           experience_max?: number | null;
           screening_questions?: Json | null;
           status?: string | null;
+          visibility?: string | null;
           application_deadline?: string | null;
           chatbot_enabled?: boolean | null;
           whatsapp_enabled?: boolean | null;

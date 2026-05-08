@@ -22,7 +22,7 @@ export default async function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-sm py-lg">
-      <div className="w-full max-w-lg bg-surface rounded-xl border border-outline-variant shadow-sm p-lg">
+      <div className="w-full max-w-[512px] bg-surface rounded-xl border border-outline-variant shadow-sm p-lg">
         <div className="mb-md">
           <h1 className="font-display text-display text-primary">Set up your organization</h1>
           <p className="font-body-base text-body-base text-text-secondary mt-2xs">

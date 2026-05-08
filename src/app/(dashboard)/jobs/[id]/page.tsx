@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requireRecruiterContext } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
+import { ShareLinkButton } from "@/components/dashboard/ShareLinkButton";
 
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const ctx = await requireRecruiterContext();
@@ -89,15 +90,18 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
             View pipeline
           </Link>
           {job.public_slug && (
-            <a
-              href={`/apply/${job.public_slug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-xs border border-outline-variant text-primary font-medium text-sm px-md py-xs rounded-xl hover:bg-surface-container-low transition-colors"
-            >
-              <span className="material-symbols-outlined text-[16px]">open_in_new</span>
-              Apply link
-            </a>
+            <>
+              <a
+                href={`/apply/${job.public_slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-xs border border-outline-variant text-primary font-medium text-sm px-md py-xs rounded-xl hover:bg-surface-container-low transition-colors bg-surface shadow-sm"
+              >
+                <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+                Preview
+              </a>
+              <ShareLinkButton slug={job.public_slug} />
+            </>
           )}
         </div>
       </div>

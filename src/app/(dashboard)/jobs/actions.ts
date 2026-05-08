@@ -24,6 +24,8 @@ export async function createJobAction(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const requirementsRaw = String(formData.get("requirements") ?? "").trim();
+  const visibility = String(formData.get("visibility") ?? "draft");
+  const status = String(formData.get("status") ?? "draft");
 
   if (!title) throw new Error("Missing title");
 
@@ -43,7 +45,8 @@ export async function createJobAction(formData: FormData) {
     title,
     description: description || null,
     requirements,
-    status: "draft",
+    status: status === "draft" ? "draft" : "active",
+    visibility: visibility === "public" ? "public" : visibility === "link_only" ? "link_only" : "draft",
     public_slug: publicSlug,
     created_at: now,
     updated_at: now,

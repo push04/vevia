@@ -48,7 +48,7 @@ export default async function JobCandidatesPage({
     )
     .eq("job_id", jobId)
     .eq("org_id", ctx.orgId)
-    .order("created_at", { ascending: false });
+    .order("applied_at", { ascending: false });
 
   if (appsError) throw new Error(appsError.message);
 

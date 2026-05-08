@@ -19,14 +19,56 @@ export async function requireRecruiterContext(): Promise<RecruiterContext> {
   const userId = userData.user.id;
   const email = userData.user.email ?? "";
 
-  const { data: profile, error: profileError } = await supabase
+  let profile = null;
+
+  // Attempt 1: Fetch with regular client (respects RLS)
+  const { data: profileData, error: profileError } = await supabase
     .from("users")
     .select("org_id, full_name, role, is_active")
     .eq("id", userId)
     .single();
 
-  if (profileError || profile?.is_active === false) {
-    redirect("/login?error=profile");
+  if (profileError && profileError.code === "PGRST116") {
+    // Attempt 2: Fallback to Admin Client (bypasses RLS)
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const adminSupabase = createAdminClient();
+    
+    // First check if it actually exists but was hidden by RLS
+    const { data: adminProfileData } = await adminSupabase
+      .from("users")
+      .select("org_id, full_name, role, is_active")
+      .eq("id", userId)
+      .single();
+
+    if (adminProfileData) {
+      // It existed, RLS just hid it. We will use it.
+      profile = adminProfileData;
+    } else {
+      // It truly does not exist. Create it via Upsert.
+      const { data: newProfile, error: upsertError } = await adminSupabase
+        .from("users")
+        .upsert({
+          id: userId,
+          email: email,
+        })
+        .select("org_id, full_name, role, is_active")
+        .single();
+
+      if (upsertError) {
+        console.error("[Auth] Failed to auto-create profile via Upsert:", upsertError);
+        redirect(`/login?error=profile_creation_failed&details=${encodeURIComponent(upsertError.message)}`);
+      }
+      profile = newProfile;
+    }
+  } else if (profileError) {
+    console.error("[Auth] Failed to fetch profile:", profileError);
+    redirect("/login?error=profile_fetch_failed");
+  } else {
+    profile = profileData;
+  }
+
+  if (profile?.is_active === false) {
+    redirect("/login?error=account_disabled");
   }
 
   if (!profile?.org_id) {

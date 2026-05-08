@@ -1,4 +1,5 @@
 import { HomeHero } from "@/components/home/HomeHero";
+import { SiteHeader } from "@/components/layout/SiteHeader";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type PublicJob = {
@@ -55,11 +56,13 @@ export default async function Home() {
   }
 
   return (
-    <div className="flex-1 bg-background">
-      <div className="max-w-6xl mx-auto px-sm sm:px-md py-lg">
+    <div className="flex-1 relative z-0 pt-16">
+      <SiteHeader />
+      <div className="fixed inset-0 pointer-events-none -z-10" style={{ backgroundImage: "linear-gradient(to right, rgba(0,0,0,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px)", backgroundSize: "32px 32px" }}></div>
+      <div className="max-w-[1440px] mx-auto px-3 sm:px-6 py-lg relative z-10">
         <HomeHero
           primaryCtaHref="/login"
-          secondaryCtaHref="#jobs"
+          secondaryCtaHref="/how-it-works"
           liveJobCount={liveJobCount}
           liveCandidateCount={liveCandidateCount}
           liveApplicationCount={liveApplicationCount}
@@ -72,7 +75,7 @@ export default async function Home() {
               <div>
                 <h2 className="font-display text-[24px] font-bold text-primary">Live openings</h2>
                 <p className="text-text-secondary text-sm mt-1">
-                  Real-time from Supabase — apply directly, AI screens you instantly.
+                  Real-time from Supabase, apply directly, AI screens you instantly.
                 </p>
               </div>
             </div>

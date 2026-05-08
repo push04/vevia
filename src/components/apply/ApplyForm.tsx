@@ -45,7 +45,7 @@ export function ApplyForm({ job, slug }: { job: Job; slug: string }) {
           <span className="material-symbols-outlined text-emerald-600 text-[40px]">check_circle</span>
         </div>
         <h2 className="font-display text-[24px] font-bold text-primary mb-xs">Application submitted!</h2>
-        <p className="text-text-secondary text-sm max-w-sm mx-auto leading-relaxed">
+        <p className="text-text-secondary text-sm max-w-[384px] mx-auto leading-relaxed">
           Your resume has been parsed and scored by our AI. You will receive an email if you are shortlisted.
         </p>
         <div className="mt-md flex items-center justify-center gap-xs text-text-secondary text-xs">

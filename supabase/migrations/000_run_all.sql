@@ -78,6 +78,8 @@ CREATE TABLE IF NOT EXISTS jobs (
   screening_questions JSONB DEFAULT '[]',
   status            TEXT DEFAULT 'draft'
                     CHECK (status IN ('draft','active','paused','closed','archived')),
+  visibility        TEXT DEFAULT 'public'
+                    CHECK (visibility IN ('public', 'link_only')),
   application_deadline DATE,
   chatbot_enabled   BOOLEAN DEFAULT TRUE,
   whatsapp_enabled  BOOLEAN DEFAULT FALSE,

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 type NavItem = {
   href: string;
@@ -151,7 +152,18 @@ export function DashboardShell(props: {
 
       <div className="flex-1 flex flex-col md:ml-64 w-full min-h-dvh">
         <div className="h-14 md:hidden" />
-        {props.children}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={pathname}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            className="flex-1 flex flex-col"
+          >
+            {props.children}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );
