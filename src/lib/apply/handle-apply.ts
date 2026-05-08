@@ -225,6 +225,34 @@ export async function handleApply(req: NextRequest, slug: string) {
       applicationRes.data.screening_score = Math.round((screeningScoreSum / screeningScoreCount) * 100) / 100;
     }
 
+    // Auto-score: compute composite score (lightweight, no Groq explanation)
+    if (embedding) {
+      try {
+        const { data: similarity, error: simError } = await supabase.rpc(
+          "match_resume_to_jd",
+          { resume_embedding: embedding, job_id: job.id },
+        );
+        if (!simError && similarity != null) {
+          const resumeScore = Math.max(0, Math.min(100, (similarity ?? 0) * 100));
+          const screeningScore = applicationRes.data.screening_score ?? 0;
+          const composite = resumeScore * 0.3 + screeningScore * 0.7;
+          await supabase
+            .from("applications")
+            .update({
+              resume_score: Math.round(resumeScore * 100) / 100,
+              composite_score: Math.round(composite * 100) / 100,
+              score_breakdown: { resumeScore, screeningScore, composite },
+              screened_at: new Date().toISOString(),
+            })
+            .eq("id", applicationRes.data.id);
+          applicationRes.data.resume_score = Math.round(resumeScore * 100) / 100;
+          applicationRes.data.composite_score = Math.round(composite * 100) / 100;
+        }
+      } catch {
+        // auto-scoring failure is non-fatal
+      }
+    }
+
     const { data: candidate, error: candidateFetchErr } = await supabase
       .from("candidates")
       .select("*")

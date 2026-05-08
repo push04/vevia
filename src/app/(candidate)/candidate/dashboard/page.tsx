@@ -28,15 +28,24 @@ export default async function CandidateDashboardPage() {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData?.user) redirect("/candidate/login");
 
+  const userId = userData.user.id;
   const email = userData.user.email ?? "";
   const admin = createAdminClient();
 
-  // Look up candidate by email
-  const { data: candidate } = await admin
+  // Look up candidate by user_id (fallback to email)
+  let { data: candidate } = await admin
     .from("candidates")
     .select("id, full_name, email, current_title, current_company, skills")
-    .eq("email", email)
+    .eq("user_id", userId)
     .maybeSingle();
+
+  if (!candidate && email) {
+    candidate = (await admin
+      .from("candidates")
+      .select("id, full_name, email, current_title, current_company, skills")
+      .eq("email", email)
+      .maybeSingle()).data ?? null;
+  }
 
   // Get all applications for this candidate
   const applications = candidate ? await admin
