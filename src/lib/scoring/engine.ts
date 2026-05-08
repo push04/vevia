@@ -55,7 +55,7 @@ export async function calculateCompositeScore(applicationId: string) {
   const { data: similarity, error: simError } = await supabase.rpc(
     "match_resume_to_jd",
     {
-      resume_embedding: app.candidate.resume_embedding ?? [],
+      resume_embedding: app.candidate.resume_embedding ?? null,
       job_id: app.job.id,
     },
   );
