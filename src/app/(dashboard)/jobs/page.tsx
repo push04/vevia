@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { requireRecruiterContext } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { createJobAction } from "./actions";
+import { createJobAction, toggleJobStatusAction, deleteJobAction } from "./actions";
 import { CreateJobForm } from "@/components/dashboard/CreateJobForm";
 import { ShareLinkButton } from "@/components/dashboard/ShareLinkButton";
+import { JobActions } from "@/components/dashboard/JobActions";
 
 const STATUS_BADGE: Record<string, string> = {
   draft:    "bg-gray-100 text-gray-600",
@@ -24,7 +25,7 @@ export default async function JobsPage() {
 
   const { data: jobs, error } = await supabase
     .from("jobs")
-    .select("id, title, status, visibility, public_slug, created_at")
+    .select("id, title, status, visibility, public_slug, created_at, application_deadline")
     .eq("org_id", ctx.orgId)
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
@@ -80,6 +81,11 @@ export default async function JobsPage() {
                           <span className="font-caption text-caption text-text-secondary">
                             {job.created_at ? new Date(job.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "—"}
                           </span>
+                          {job.application_deadline && (
+                            <span className={`font-caption text-caption ${new Date(job.application_deadline) < new Date() ? "text-red-500" : "text-text-secondary"}`}>
+                              Closes {new Date(job.application_deadline).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                            </span>
+                          )}
                         </div>
                       </Link>
                       <div className="flex items-center gap-xs shrink-0">
@@ -93,6 +99,12 @@ export default async function JobsPage() {
                         {job.public_slug && (
                           <ShareLinkButton slug={job.public_slug} size="sm" />
                         )}
+                        <JobActions
+                          jobId={job.id}
+                          status={job.status ?? "draft"}
+                          toggleStatusAction={toggleJobStatusAction}
+                          deleteAction={deleteJobAction}
+                        />
                       </div>
                     </div>
                   </div>

@@ -37,6 +37,8 @@ export async function createJobAction(formData: FormData) {
         .slice(0, 50)
     : null;
 
+  const applicationDeadline = String(formData.get("application_deadline") ?? "").trim() || null;
+
   const publicSlug = `${slugify(title)}-${randomSuffix()}`;
 
   const now = new Date().toISOString();
@@ -48,10 +50,38 @@ export async function createJobAction(formData: FormData) {
     status: status === "draft" ? "draft" : "active",
     visibility: visibility === "public" ? "public" : visibility === "link_only" ? "link_only" : "draft",
     public_slug: publicSlug,
+    application_deadline: applicationDeadline,
     created_at: now,
     updated_at: now,
   });
 
+  if (error) throw new Error(error.message);
+  revalidatePath("/jobs");
+}
+
+export async function toggleJobStatusAction(jobId: string, newStatus: string) {
+  const ctx = await requireRecruiterContext();
+  const supabase = await createClient();
+
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from("jobs")
+    .update({ status: newStatus, updated_at: now })
+    .eq("id", jobId)
+    .eq("org_id", ctx.orgId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/jobs");
+}
+
+export async function deleteJobAction(jobId: string) {
+  const ctx = await requireRecruiterContext();
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("jobs")
+    .delete()
+    .eq("id", jobId)
+    .eq("org_id", ctx.orgId);
   if (error) throw new Error(error.message);
   revalidatePath("/jobs");
 }

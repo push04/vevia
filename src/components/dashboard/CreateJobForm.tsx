@@ -11,6 +11,7 @@ export function CreateJobForm({ action }: CreateJobFormProps) {
   const [description, setDescription] = useState("");
   const [requirements, setRequirements] = useState("");
   const [visibility, setVisibility] = useState<"draft" | "link_only" | "public">("draft");
+  const [closingDate, setClosingDate] = useState("");
   const [aiState, setAiState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [aiError, setAiError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -118,6 +119,20 @@ export function CreateJobForm({ action }: CreateJobFormProps) {
           placeholder={"React\nTypeScript\n5+ years experience"}
         />
       </label>
+
+      {/* Application deadline */}
+      <div>
+        <span className="font-label text-label text-text-secondary block mb-1">Application deadline (optional)</span>
+        <input
+          type="date"
+          name="application_deadline"
+          value={closingDate}
+          onChange={(e) => setClosingDate(e.target.value)}
+          className="w-full bg-surface-container-low border border-outline-variant rounded-lg px-sm py-xs outline-none focus:ring-2 focus:ring-primary-container transition text-sm"
+          min={new Date().toISOString().split("T")[0]}
+        />
+        <p className="text-[11px] text-text-secondary mt-1">Job will automatically pause after this date.</p>
+      </div>
 
       {/* Visibility selector */}
       <div>
