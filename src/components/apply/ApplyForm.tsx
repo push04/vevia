@@ -77,20 +77,18 @@ export function ApplyForm({ job, slug }: { job: Job; slug: string }) {
     <form onSubmit={onSubmit} className="space-y-sm">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm">
         <label className="block">
-          <span className="text-xs text-text-secondary font-medium">Full name *</span>
+          <span className="text-xs text-text-secondary font-medium">Full name</span>
           <input
             name="full_name"
-            required
             placeholder="Rahul Sharma"
             className="mt-1 w-full bg-surface-container-low border border-outline-variant rounded-xl px-sm py-xs text-sm outline-none focus:ring-2 focus:ring-primary/30 transition"
           />
         </label>
         <label className="block">
-          <span className="text-xs text-text-secondary font-medium">Email address *</span>
+          <span className="text-xs text-text-secondary font-medium">Email address</span>
           <input
             name="email"
             type="email"
-            required
             placeholder="rahul@example.com"
             className="mt-1 w-full bg-surface-container-low border border-outline-variant rounded-xl px-sm py-xs text-sm outline-none focus:ring-2 focus:ring-primary/30 transition"
           />
@@ -115,6 +113,17 @@ export function ApplyForm({ job, slug }: { job: Job; slug: string }) {
             className="mt-1 w-full bg-surface-container-low border border-outline-variant rounded-xl px-sm py-xs text-sm outline-none focus:ring-2 focus:ring-primary/30 transition"
           />
         </label>
+      </div>
+
+      <div>
+        <span className="text-xs text-text-secondary font-medium block mb-1">LinkedIn profile URL</span>
+        <input
+          name="linkedin_url"
+          type="url"
+          placeholder="https://linkedin.com/in/your-profile"
+          className="mt-1 w-full bg-surface-container-low border border-outline-variant rounded-xl px-sm py-xs text-sm outline-none focus:ring-2 focus:ring-primary/30 transition"
+        />
+        <p className="text-xs text-text-secondary mt-1">Optional. We will fetch additional details from your public profile.</p>
       </div>
 
       {/* Resume upload */}

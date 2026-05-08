@@ -6,6 +6,7 @@ import { parseResume } from "@/lib/groq/resume-parser";
 import { generateEmbedding } from "@/lib/embeddings/generate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { scoreAnswer } from "@/lib/groq/answer-scorer";
+import { scrapeLinkedInProfile } from "@/lib/linkedin/scrape";
 
 export async function handleApply(req: NextRequest, slug: string) {
   try {
@@ -20,6 +21,7 @@ export async function handleApply(req: NextRequest, slug: string) {
     const fullName = (formData.get("full_name") as string | null) ?? null;
     const phone = (formData.get("phone") as string | null) ?? null;
     const currentLocation = (formData.get("current_location") as string | null) ?? null;
+    const linkedinUrl = (formData.get("linkedin_url") as string | null) ?? null;
     if (!(file instanceof File)) {
       return NextResponse.json(
         { success: false, error: "Missing form-data field: resume (File)" },
@@ -38,7 +40,26 @@ export async function handleApply(req: NextRequest, slug: string) {
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());
     const rawText = await extractTextFromFile(fileBuffer, file.type);
-    const parsed = await parseResume(rawText);
+
+    // If LinkedIn URL provided, try to scrape profile data and append to resume text
+    const resolvedLinkedinUrl = linkedinUrl || null;
+    let enrichedText = rawText;
+    if (resolvedLinkedinUrl && resolvedLinkedinUrl.includes("linkedin.com/in/")) {
+      try {
+        const linkedinData = await scrapeLinkedInProfile(resolvedLinkedinUrl);
+        if (linkedinData) {
+          enrichedText = `[LinkedIn Profile]\n${linkedinData}\n\n[Resume]\n${rawText}`;
+        }
+      } catch {
+        // LinkedIn scraping failure is non-fatal
+      }
+    }
+
+    const parsed = await parseResume(enrichedText);
+    // Override linkedin_url with the one provided by candidate if given
+    if (resolvedLinkedinUrl) {
+      parsed.linkedin_url = resolvedLinkedinUrl;
+    }
     let embedding: number[] | null = null;
     try {
       embedding = await generateEmbedding(rawText.slice(0, 2000));
