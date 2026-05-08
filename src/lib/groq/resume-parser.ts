@@ -26,11 +26,14 @@ const ResumeSchema = z.object({
     z.object({
       company: z.string(),
       title: z.string(),
-      start_date: z.string(),
-      end_date: z.union([z.string(), z.literal("Present")]),
-      duration_months: z.number(),
-      key_responsibilities: z.array(z.string()),
-      technologies: z.array(z.string()),
+      start_date: z.string().nullable().default(""),
+      end_date: z
+        .union([z.string(), z.literal("Present")])
+        .nullable()
+        .default(""),
+      duration_months: z.number().nullable().default(0),
+      key_responsibilities: z.array(z.string()).default([]),
+      technologies: z.array(z.string()).default([]),
     }),
   ),
   certifications: z.array(z.string()),
