@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/lib/supabase/types";
+import { DashboardScreening } from "@/components/candidate/DashboardScreening";
 
 export const dynamic = "force-dynamic";
 
@@ -51,12 +52,26 @@ export default async function CandidateDashboardPage() {
   const applications = candidate ? await admin
     .from("applications")
     .select(`
-      id, status, composite_score, resume_score, applied_at,
-      jobs(id, title, location, employment_type, public_slug, organizations(name))
+      id, status, composite_score, resume_score, applied_at, screening_answers,
+      jobs(id, title, location, employment_type, public_slug, screening_questions, organizations(name))
     `)
     .eq("candidate_id", candidate.id)
     .order("applied_at", { ascending: false })
     .then(r => r.data ?? []) : [];
+
+  const screeningApps = applications.map((app) => {
+    const job = (app.jobs as unknown as { id: string; title: string; screening_questions: unknown } | null);
+    const questions = (Array.isArray(job?.screening_questions) ? job.screening_questions : []) as { q: string }[];
+    const answers = (Array.isArray(app.screening_answers) ? app.screening_answers : []) as { question: string }[];
+    return {
+      id: app.id,
+      status: app.status,
+      jobTitle: job?.title ?? "Unknown Role",
+      hasScreeningQuestions: questions.length > 0,
+      existingAnswerCount: answers.length,
+      questionCount: questions.length,
+    };
+  });
 
   const displayName = candidate?.full_name ?? email.split("@")[0];
 
@@ -94,6 +109,8 @@ export default async function CandidateDashboardPage() {
           </div>
         ))}
       </div>
+
+      <DashboardScreening applications={screeningApps} />
 
       {/* Applications list */}
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
