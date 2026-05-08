@@ -52,17 +52,19 @@ export async function calculateCompositeScore(applicationId: string) {
   if (error || !app) throw new Error(error?.message ?? "Application not found");
   if (!app.job || !app.candidate) throw new Error("Missing job/candidate");
 
-  const { data: similarity, error: simError } = await supabase.rpc(
-    "match_resume_to_jd",
-    {
-      resume_embedding: app.candidate.resume_embedding ?? null,
-      job_id: app.job.id,
-    },
-  );
+  let resumeScore = 0;
+  if (app.candidate.resume_embedding) {
+    const { data: similarity, error: simError } = await supabase.rpc(
+      "match_resume_to_jd",
+      {
+        resume_embedding: app.candidate.resume_embedding,
+        job_id: app.job.id,
+      },
+    );
+    if (simError) throw new Error(simError.message);
+    resumeScore = Math.max(0, Math.min(100, (similarity ?? 0) * 100));
+  }
 
-  if (simError) throw new Error(simError.message);
-
-  const resumeScore = Math.max(0, Math.min(100, (similarity ?? 0) * 100));
   const screeningScore = app.screening_score ?? 0;
   const testScore = app.test_score ?? null;
   const videoScore = app.video_score ?? null;
