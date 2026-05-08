@@ -25,7 +25,12 @@ export async function POST(req: NextRequest) {
     const fileBuffer = Buffer.from(await file.arrayBuffer());
     const rawText = await extractTextFromFile(fileBuffer, file.type);
     const parsed = await parseResume(rawText);
-    const embedding = await generateEmbedding(rawText.slice(0, 2000));
+    let embedding: number[] | null = null;
+    try {
+      embedding = await generateEmbedding(rawText.slice(0, 2000));
+    } catch {
+      // embedding failure is non-fatal
+    }
 
     let candidate: unknown = null;
     let resumePath: string | null = null;
@@ -57,7 +62,7 @@ export async function POST(req: NextRequest) {
             work_experience: parsed.work_experience,
             resume_url: resumePath,
             resume_raw_text: rawText,
-            resume_embedding: embedding,
+            resume_embedding: embedding ?? [],
             languages: parsed.languages,
             linkedin_url: parsed.linkedin_url,
             github_url: parsed.github_url,
@@ -97,7 +102,7 @@ export async function POST(req: NextRequest) {
       success: true,
       parsed,
       rawTextPreview: rawText.slice(0, 500),
-      embeddingDims: embedding.length,
+      embeddingDims: embedding?.length ?? 0,
       resumePath,
       candidate,
       application,

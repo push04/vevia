@@ -9,3 +9,6 @@ major_version = 15
 [studio]
 enabled = true
 
+# This will be set during supabase link
+[auth]
+enabled = true

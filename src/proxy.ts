@@ -8,11 +8,7 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const res = NextResponse.next({
-    request: {
-      headers: req.headers,
-    },
-  });
+  const res = NextResponse.next();
 
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

@@ -38,7 +38,12 @@ export async function handleApply(req: NextRequest, slug: string) {
     const fileBuffer = Buffer.from(await file.arrayBuffer());
     const rawText = await extractTextFromFile(fileBuffer, file.type);
     const parsed = await parseResume(rawText);
-    const embedding = await generateEmbedding(rawText.slice(0, 2000));
+    let embedding: number[] | null = null;
+    try {
+      embedding = await generateEmbedding(rawText.slice(0, 2000));
+    } catch {
+      // embedding failure is non-fatal; resume data still stored
+    }
 
     const resumePath = `resumes/${Date.now()}-${file.name}`;
     const uploadRes = await supabase.storage
@@ -63,7 +68,7 @@ export async function handleApply(req: NextRequest, slug: string) {
           work_experience: parsed.work_experience,
           resume_url: resumePath,
           resume_raw_text: rawText,
-          resume_embedding: embedding,
+          resume_embedding: embedding ?? [],
           languages: parsed.languages,
           linkedin_url: parsed.linkedin_url,
           github_url: parsed.github_url,

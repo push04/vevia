@@ -5,6 +5,16 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { slug } = await params;
-  return handleApply(req, slug);
+  try {
+    const { slug } = await params;
+    return await handleApply(req, slug);
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unexpected server error",
+      },
+      { status: 500 },
+    );
+  }
 }
