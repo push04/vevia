@@ -1,30 +1,22 @@
 import mammoth from "mammoth";
 
 function ensureBrowserGlobals(): void {
-  const isNode = typeof globalThis !== "undefined" && typeof (globalThis as Record<string, unknown>).window === "undefined";
-  if (!isNode) return;
-
-  // pdfjs-dist (used by pdf-parse) relies on browser geometry APIs.
-  // Polyfill them for Node.js / serverless environments.
+  const noWindow =
+    typeof globalThis !== "undefined" &&
+    typeof (globalThis as Record<string, unknown>).window === "undefined";
+  if (!noWindow) return;
 
   if (typeof (globalThis as Record<string, unknown>).DOMMatrixReadOnly === "undefined") {
     class DOMMatrixReadOnly {
-      a: number; b: number; c: number; d: number; e: number; f: number;
-      m11: number; m12: number; m13: number; m14: number;
-      m21: number; m22: number; m23: number; m24: number;
-      m31: number; m32: number; m33: number; m34: number;
-      m41: number; m42: number; m43: number; m44: number;
-      is2D: boolean; isIdentity: boolean;
+      a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
+      m11 = 1; m12 = 0; m13 = 0; m14 = 0;
+      m21 = 0; m22 = 1; m23 = 0; m24 = 0;
+      m31 = 0; m32 = 0; m33 = 1; m34 = 0;
+      m41 = 0; m42 = 0; m43 = 0; m44 = 1;
+      is2D = true; isIdentity = true;
 
       constructor(init?: string | number[]) {
-        this.a = 1; this.b = 0; this.c = 0; this.d = 1; this.e = 0; this.f = 0;
-        this.m11 = 1; this.m12 = 0; this.m13 = 0; this.m14 = 0;
-        this.m21 = 0; this.m22 = 1; this.m23 = 0; this.m24 = 0;
-        this.m31 = 0; this.m32 = 0; this.m33 = 1; this.m34 = 0;
-        this.m41 = 0; this.m42 = 0; this.m43 = 0; this.m44 = 1;
-        this.is2D = true; this.isIdentity = true;
         if (typeof init === "string") {
-          // minimal CSS matrix parsing
           const m = init.match(/matrix3?d?\(([^)]+)\)/);
           if (m) {
             const vals = m[1].split(",").map(Number);
@@ -42,19 +34,19 @@ function ensureBrowserGlobals(): void {
         } else if (Array.isArray(init) && init.length >= 6) {
           this.a = init[0]; this.b = init[1]; this.c = init[2]; this.d = init[3];
           this.e = init[4]; this.f = init[5];
-          this.is2D = true;
         }
       }
-
-      translate(tx: number, ty: number, tz?: number): DOMMatrix {
+      translate(tx: number, ty: number): DOMMatrix {
         return new DOMMatrix([this.a, this.b, this.c, this.d, this.e + tx, this.f + ty]);
       }
       scale(sx: number, sy?: number): DOMMatrix {
-        return new DOMMatrix([this.a * sx, this.b * sx, this.c * (sy ?? sx), this.d * (sy ?? sx), this.e, this.f]);
+        return new DOMMatrix([
+          this.a * sx, this.b * sx, this.c * (sy ?? sx), this.d * (sy ?? sx), this.e, this.f,
+        ]);
       }
       rotate(angle: number): DOMMatrix {
         const rad = angle * Math.PI / 180;
-        const cos = Math.cos(rad), sin = Math.sin(rad);
+        const cos = Math.cos(rad); const sin = Math.sin(rad);
         return new DOMMatrix([
           this.a * cos + this.c * sin, this.b * cos + this.d * sin,
           this.a * -sin + this.c * cos, this.b * -sin + this.d * cos,
@@ -73,12 +65,12 @@ function ensureBrowserGlobals(): void {
     }
 
     class DOMPoint {
-      x: number; y: number; z: number; w: number;
+      x = 0; y = 0; z = 0; w = 1;
       constructor(x = 0, y = 0, z = 0, w = 1) { this.x = x; this.y = y; this.z = z; this.w = w; }
     }
 
     class DOMRect {
-      x: number; y: number; width: number; height: number;
+      x = 0; y = 0; width = 0; height = 0;
       constructor(x = 0, y = 0, width = 0, height = 0) { this.x = x; this.y = y; this.width = width; this.height = height; }
       get top(): number { return this.y; }
       get left(): number { return this.x; }
@@ -93,16 +85,41 @@ function ensureBrowserGlobals(): void {
   }
 }
 
+function ensureTextEncoder(): void {
+  if (typeof (globalThis as Record<string, unknown>).TextEncoder === "undefined") {
+    const { TextEncoder, TextDecoder } = require("util") as {
+      TextEncoder: typeof globalThis.TextEncoder;
+      TextDecoder: typeof globalThis.TextDecoder;
+    };
+    (globalThis as Record<string, unknown>).TextEncoder = TextEncoder;
+    (globalThis as Record<string, unknown>).TextDecoder = TextDecoder;
+  }
+}
+
 export async function extractTextFromFile(
   buffer: Buffer,
   mimeType: string,
 ): Promise<string> {
   if (mimeType === "application/pdf") {
     ensureBrowserGlobals();
-    const { PDFParse } = await import("pdf-parse");
-    const parser = new PDFParse({ data: buffer });
-    const parsed = await parser.getText();
-    return parsed.text ?? "";
+    ensureTextEncoder();
+
+    const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "";
+
+    const doc = await pdfjsLib.getDocument({ data: buffer.buffer as ArrayBuffer }).promise;
+    const pages: string[] = [];
+    for (let i = 1; i <= doc.numPages; i++) {
+      const page = await doc.getPage(i);
+      const text = await page.getTextContent();
+      pages.push(
+        text.items
+          .map((item) => ("str" in item ? (item as { str: string }).str : ""))
+          .join(" "),
+      );
+    }
+    await doc.destroy();
+    return pages.join("\n\n");
   }
 
   if (
