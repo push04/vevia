@@ -105,7 +105,15 @@ export async function extractTextFromFile(
     ensureTextEncoder();
 
     const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "";
+
+    // Inline the worker in the main thread to avoid needing the worker file at runtime.
+    if (
+      typeof (globalThis as Record<string, unknown>).pdfjsWorker === "undefined"
+    ) {
+      // @ts-ignore - pdf.worker.mjs has no type declarations
+      const workerModule = await import("pdfjs-dist/legacy/build/pdf.worker.mjs");
+      (globalThis as Record<string, unknown>).pdfjsWorker = workerModule;
+    }
 
     const doc = await pdfjsLib.getDocument({ data: buffer.buffer as ArrayBuffer }).promise;
     const pages: string[] = [];
