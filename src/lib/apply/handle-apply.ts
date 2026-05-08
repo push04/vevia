@@ -145,7 +145,6 @@ export async function handleApply(req: NextRequest, slug: string) {
         org_id: job.org_id,
         job_id: job.id,
         candidate_id: candidateId,
-        status: "applied",
       })
       .select()
       .single();
