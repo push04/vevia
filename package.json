@@ -24,7 +24,6 @@
     "svix": "^1.75.0",
     "zod": "^4.4.3"
   },
-  "packageManager": "pnpm@10.28.2",
   "pnpm": {
     "onlyBuiltDependencies": ["onnxruntime-node"]
   },
