@@ -15,6 +15,7 @@ const JobPatchSchema = z
     requirements: z.array(z.string()).optional().nullable(),
     status: z.string().optional().nullable(),
     screening_questions: z.unknown().optional().nullable(),
+    org_id: z.string().min(1),
   })
   .strict();
 
@@ -36,8 +37,9 @@ export async function PATCH(
 
     const { id } = await params;
     const supabase = createAdminClient();
+    const { org_id, ...patchFields } = patch.data;
     const update = {
-      ...(patch.data as JobUpdate),
+      ...(patchFields as JobUpdate),
       updated_at: new Date().toISOString(),
     } satisfies JobUpdate;
 
@@ -45,6 +47,7 @@ export async function PATCH(
       .from("jobs")
       .update(update)
       .eq("id", id)
+      .eq("org_id", org_id)
       .select()
       .single();
 

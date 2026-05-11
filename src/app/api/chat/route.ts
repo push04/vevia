@@ -1,9 +1,20 @@
+import { z } from "zod";
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireInternalAuth } from "@/lib/auth/internal";
 import { requireEnv } from "@/lib/env";
 import { scoreAnswer } from "@/lib/groq/answer-scorer";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+const ChatBodySchema = z.object({
+  applicationId: z.string().min(1),
+  question: z.string().min(1),
+  questionType: z.string().min(1),
+  candidateAnswer: z.string().min(1),
+  weight: z.number().min(0).max(1),
+  jobContext: z.string().min(1),
+  org_id: z.string().min(1),
+});
 
 export async function POST(req: NextRequest) {
   const authError = requireInternalAuth(req);
@@ -15,14 +26,11 @@ export async function POST(req: NextRequest) {
     requireEnv("GROQ_API_KEY");
     requireEnv("GROQ_MODEL_FAST");
 
-    const body = (await req.json()) as {
-      applicationId: string;
-      question: string;
-      questionType: string;
-      candidateAnswer: string;
-      weight: number;
-      jobContext: string;
-    };
+    const parsed = ChatBodySchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return NextResponse.json({ success: false, error: "Invalid body", issues: parsed.error.issues }, { status: 400 });
+    }
+    const body = parsed.data;
 
     const supabase = createAdminClient();
     const result = await scoreAnswer(body);
@@ -32,6 +40,7 @@ export async function POST(req: NextRequest) {
       .from("applications")
       .select("screening_answers, screening_score")
       .eq("id", body.applicationId)
+      .eq("org_id", body.org_id)
       .single();
 
     if (appRes.error) throw new Error(appRes.error.message);
@@ -61,7 +70,8 @@ export async function POST(req: NextRequest) {
     await supabase
       .from("applications")
       .update({ screening_answers: nextAnswers as never, screening_score: avg })
-      .eq("id", body.applicationId);
+      .eq("id", body.applicationId)
+      .eq("org_id", body.org_id);
 
     return NextResponse.json({ success: true, result, screeningScore: avg });
   } catch (error) {

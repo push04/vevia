@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { requireEnv } from "../env";
-import { createGroqClient } from "./client";
+import { createGroqClient, withRetry } from "./client";
 import { RESUME_PARSE_PROMPT } from "./prompts";
 
 const ResumeSchema = z.object({
@@ -51,16 +51,18 @@ export async function parseResume(rawText: string): Promise<ParsedResume> {
   const groq = createGroqClient();
   const model = requireEnv("GROQ_MODEL_LARGE");
 
-  const completion = await groq.chat.completions.create({
-    model,
-    messages: [
-      { role: "system", content: RESUME_PARSE_PROMPT },
-      { role: "user", content: `Resume text:\n\n${rawText.slice(0, 8000)}` },
-    ],
-    temperature: 0.1,
-    max_tokens: 2000,
-    response_format: { type: "json_object" },
-  });
+  const completion = await withRetry(() =>
+    groq.chat.completions.create({
+      model,
+      messages: [
+        { role: "system", content: RESUME_PARSE_PROMPT },
+        { role: "user", content: `Resume text:\n\n${rawText.slice(0, 8000)}` },
+      ],
+      temperature: 0.1,
+      max_tokens: 2000,
+      response_format: { type: "json_object" },
+    }),
+  );
 
   const content = completion.choices?.[0]?.message?.content;
   if (!content) throw new Error("Groq returned empty content");

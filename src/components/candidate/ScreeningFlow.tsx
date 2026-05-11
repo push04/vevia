@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 type Question = { q: string; type: string; options?: { id: string; title: string; ideal: boolean }[]; preferred_yes?: boolean };
 type ExistingAnswer = { question: string; answer: string; score: number };
@@ -20,12 +20,17 @@ export function ScreeningFlow({ applicationId, onClose }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [progress, setProgress] = useState({ answered: 0, total: 0 });
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    fetch(`/api/screening/${applicationId}`)
+    const ctrl = new AbortController();
+    mountedRef.current = true;
+
+    fetch(`/api/screening/${applicationId}`, { signal: ctrl.signal })
       .then((r) => r.json())
       .then((data) => {
-        if (data.error) { setError(data.error); return; }
+        if (!mountedRef.current) return;
+        if (data.error) { setError(data.error); setLoading(false); return; }
         setQuestions(data.questions);
         setUnansweredIndices(data.unansweredIndices);
         setProgress({ answered: data.existingAnswers?.length ?? 0, total: data.questions.length });
@@ -35,11 +40,21 @@ export function ScreeningFlow({ applicationId, onClose }: Props) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: "start" }),
+            signal: ctrl.signal,
           }).catch(() => {});
         }
         setLoading(false);
       })
-      .catch(() => { setError("Failed to load screening"); setLoading(false); });
+      .catch((err) => {
+        if (!mountedRef.current || err?.name === "AbortError") return;
+        setError("Failed to load screening");
+        setLoading(false);
+      });
+
+    return () => {
+      mountedRef.current = false;
+      ctrl.abort();
+    };
   }, [applicationId]);
 
   const submitAnswer = useCallback(async () => {
@@ -55,8 +70,7 @@ export function ScreeningFlow({ applicationId, onClose }: Props) {
       const data = await res.json();
       if (!res.ok || !data.success) { setError(data.error ?? "Failed to save"); return; }
 
-      const newAnswered = progress.answered + 1;
-      setProgress({ answered: newAnswered, total: questions.length });
+      setProgress((prev) => ({ answered: prev.answered + 1, total: prev.total }));
 
       if (data.isComplete) {
         setCompleted(true);
@@ -69,7 +83,7 @@ export function ScreeningFlow({ applicationId, onClose }: Props) {
     } finally {
       setSubmitting(false);
     }
-  }, [answer, submitting, unansweredIndices, currentIdx, applicationId, progress.answered, questions.length]);
+  }, [answer, submitting, unansweredIndices, currentIdx, applicationId]);
 
   if (loading) {
     return (

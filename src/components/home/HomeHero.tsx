@@ -74,6 +74,7 @@ function AnimatedCounter({ target, suffix }: { target: number; suffix: string })
           if (start >= target) { setVal(target); clearInterval(timer); }
           else setVal(Math.floor(start));
         }, 30);
+        return () => clearInterval(timer);
       },
       { threshold: 0.3 }
     );

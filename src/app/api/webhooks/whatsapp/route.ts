@@ -124,7 +124,8 @@ export async function POST(req: NextRequest) {
       questions,
       state: session.state,
     });
-  } catch {
+  } catch (error) {
+    console.error("WhatsApp webhook error:", error);
     await sendWhatsAppMessage(
       from,
       "Namaste! Please apply via the job link to begin screening.",

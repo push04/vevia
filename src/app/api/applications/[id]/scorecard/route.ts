@@ -12,6 +12,15 @@ export async function GET(
 
   try {
     const { id } = await params;
+    const { searchParams } = new URL(req.url);
+    const orgId = searchParams.get("org_id");
+    if (!orgId) {
+      return NextResponse.json(
+        { success: false, error: "Missing required query param: org_id" },
+        { status: 400 },
+      );
+    }
+
     const supabase = createAdminClient();
 
     const { data, error } = await supabase
@@ -24,6 +33,7 @@ export async function GET(
       `,
       )
       .eq("id", id)
+      .eq("org_id", orgId)
       .single();
 
     if (error || !data) {

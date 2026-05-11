@@ -1,6 +1,13 @@
+import { z } from "zod";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+const PostActionSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("start") }),
+  z.object({ action: z.literal("answer"), questionIndex: z.number().int().min(0), answer: z.string().min(1) }),
+  z.object({ action: z.literal("complete") }),
+]);
 
 export async function GET(
   _req: NextRequest,
@@ -71,9 +78,10 @@ export async function POST(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { applicationId } = await params;
-  const body = await req.json();
-  const { action, questionIndex, answer } = body;
-
+  const parsed = PostActionSchema.safeParse(await req.json());
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid body", issues: parsed.error.issues }, { status: 400 });
+  }
   const admin = createAdminClient();
 
   const { data: ownershipCheck } = await admin
@@ -86,6 +94,8 @@ export async function POST(
   if (!candidateEmail || candidateEmail !== user.email) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  const { action } = parsed.data;
 
   if (action === "start") {
     const { data: existing } = await admin
@@ -116,7 +126,8 @@ export async function POST(
     return NextResponse.json({ success: true });
   }
 
-  if (action === "answer" && questionIndex != null && answer != null) {
+  if (action === "answer") {
+    const { questionIndex, answer } = parsed.data;
     const { data: app } = await admin
       .from("applications")
       .select("screening_answers, screening_score, job:jobs(id, screening_questions)")

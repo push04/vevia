@@ -7,7 +7,11 @@ export function ShareLinkButton({ slug, size = "md" }: { slug: string; size?: "s
 
   const handleCopy = () => {
     const url = `${window.location.origin}/apply/${slug}`;
-    navigator.clipboard.writeText(url);
+    try {
+      navigator.clipboard.writeText(url);
+    } catch {
+      // clipboard write may fail in insecure contexts
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

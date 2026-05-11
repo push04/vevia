@@ -59,6 +59,6 @@ export default async function JobCandidatesPage({
     return scoreApplicationAction(jobId, applicationId);
   }
 
-  return <PipelineView jobId={jobId} jobTitle={job.title} applications={applications} onScore={onScore} />;
+  return <PipelineView jobTitle={job.title} applications={applications} onScore={onScore} />;
 }
 

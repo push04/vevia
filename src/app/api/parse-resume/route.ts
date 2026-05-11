@@ -25,6 +25,19 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json(
+        { success: false, error: "File too large. Maximum size is 10MB." },
+        { status: 400 },
+      );
+    }
+    const allowedTypes = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "text/plain"];
+    if (!allowedTypes.includes(file.type)) {
+      return NextResponse.json(
+        { success: false, error: "Unsupported file type. Please upload PDF, DOC, DOCX, or TXT." },
+        { status: 400 },
+      );
+    }
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());
     const rawText = await extractTextFromFile(fileBuffer, file.type);

@@ -13,12 +13,19 @@ export async function GET(
 
   try {
     const { session_id } = await params;
+    const { searchParams } = new URL(req.url);
+    const orgId = searchParams.get("org_id");
+    if (!orgId) {
+      return NextResponse.json({ success: false, error: "Missing required query param: org_id" }, { status: 400 });
+    }
+
     const supabase = createAdminClient();
 
     const { data, error } = await supabase
       .from("applications")
       .select("id, screening_answers, screening_score")
       .eq("id", session_id)
+      .eq("org_id", orgId)
       .single();
 
     if (error || !data) {

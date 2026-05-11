@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { requireEnv } from "../env";
-import { createGroqClient } from "./client";
+import { createGroqClient, withRetry } from "./client";
 import { answerScorePrompt } from "./prompts";
 
 const AnswerScoreSchema = z.object({
@@ -31,13 +31,15 @@ export async function scoreAnswer(params: {
     idealAnswer: params.idealAnswer,
   });
 
-  const result = await groq.chat.completions.create({
-    model,
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.2,
-    max_tokens: 200,
-    response_format: { type: "json_object" },
-  });
+  const result = await withRetry(() =>
+    groq.chat.completions.create({
+      model,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.2,
+      max_tokens: 200,
+      response_format: { type: "json_object" },
+    }),
+  );
 
   const content = result.choices?.[0]?.message?.content;
   if (!content) throw new Error("Groq returned empty content");

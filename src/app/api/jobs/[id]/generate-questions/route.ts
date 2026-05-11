@@ -12,6 +12,7 @@ const BodySchema = z
     experienceRange: z.string().min(1),
     questionCount: z.number().int().min(1).max(25).optional(),
     language: z.enum(["en", "hi"]).optional(),
+    org_id: z.string().min(1),
   })
   .strict();
 
@@ -41,6 +42,7 @@ export async function POST(
       .from("jobs")
       .select("id, title, description, requirements")
       .eq("id", id)
+      .eq("org_id", body.data.org_id)
       .single();
     if (jobError || !job) {
       return NextResponse.json({ success: false, error: "Job not found" }, { status: 404 });

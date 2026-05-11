@@ -10,7 +10,7 @@ export function SiteHeader() {
     return createClient();
   }, []);
 
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ email?: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,6 +18,8 @@ export function SiteHeader() {
     
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user);
+      setLoading(false);
+    }).catch(() => {
       setLoading(false);
     });
 
@@ -32,7 +34,11 @@ export function SiteHeader() {
 
   const handleLogout = async () => {
     if (!supabase) return;
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // logout failure is non-fatal
+    }
   };
 
   return (

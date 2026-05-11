@@ -85,6 +85,27 @@ export async function calculateCompositeScore(applicationId: string) {
     scores: { resumeScore, screeningScore, testScore, videoScore, composite },
   });
 
+  // Transactional: application update + audit_log insert. If either fails, both roll back.
+  const { error: updateErr } = await (supabase.rpc as unknown as (name: string, args: Record<string, unknown>) => Promise<{ error: { message: string } | null }>)(
+    "apply_score_and_audit",
+    {
+      p_application_id: applicationId,
+      p_org_id: app.org_id,
+      p_resume_score: resumeScore,
+      p_composite_score: composite,
+      p_score_breakdown: { resumeScore, screeningScore, testScore, videoScore, weights },
+      p_score_explanation: JSON.stringify(explanation),
+      p_actor_type: "ai",
+      p_actor_id: "groq-llm",
+      p_metadata: { composite, model: process.env.GROQ_MODEL_LARGE },
+    },
+  );
+
+  if (!updateErr) {
+    return { composite, resumeScore, screeningScore, testScore, videoScore, weights };
+  }
+
+  // Fallback: if RPC doesn't exist, apply updates sequentially
   await supabase
     .from("applications")
     .update({

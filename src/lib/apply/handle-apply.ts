@@ -75,85 +75,45 @@ export async function handleApply(req: NextRequest, slug: string) {
 
     const candidateEmail = (email || parsed.email);
     let candidateId: string;
+
+    const candidateFields = {
+      full_name: fullName || parsed.full_name,
+      phone: phone || parsed.phone,
+      current_location: currentLocation || parsed.current_location,
+      current_company: parsed.current_company,
+      current_title: parsed.current_title,
+      total_experience: parsed.total_experience_years,
+      skills: parsed.skills,
+      education: parsed.education,
+      work_experience: parsed.work_experience,
+      resume_url: resumePath,
+      resume_raw_text: rawText,
+      resume_embedding: embedding,
+      languages: parsed.languages,
+      linkedin_url: parsed.linkedin_url,
+      github_url: parsed.github_url,
+      portfolio_url: parsed.portfolio_url,
+    };
+
     if (candidateEmail) {
-      const { data: existing } = await supabase
+      // Use upsert with email as conflict target to avoid race conditions
+      const { data: upserted, error: upsertErr } = await supabase
         .from("candidates")
+        .upsert({
+          org_id: job.org_id,
+          email: candidateEmail,
+          ...candidateFields,
+        }, { onConflict: "email", ignoreDuplicates: false })
         .select("id")
-        .eq("email", candidateEmail)
-        .maybeSingle();
-      if (existing) {
-        candidateId = existing.id;
-        const { error: updateErr } = await supabase
-          .from("candidates")
-          .update({
-            full_name: fullName || parsed.full_name,
-            phone: phone || parsed.phone,
-            current_location: currentLocation || parsed.current_location,
-            current_company: parsed.current_company,
-            current_title: parsed.current_title,
-            total_experience: parsed.total_experience_years,
-            skills: parsed.skills,
-            education: parsed.education,
-            work_experience: parsed.work_experience,
-            resume_url: resumePath,
-            resume_raw_text: rawText,
-            resume_embedding: embedding,
-            languages: parsed.languages,
-            linkedin_url: parsed.linkedin_url,
-            github_url: parsed.github_url,
-            portfolio_url: parsed.portfolio_url,
-          })
-          .eq("id", candidateId);
-        if (updateErr) throw new Error(updateErr.message);
-      } else {
-        const { data: inserted, error: insertErr } = await supabase
-          .from("candidates")
-          .insert({
-            org_id: job.org_id,
-            full_name: fullName || parsed.full_name,
-            email: candidateEmail,
-            phone: phone || parsed.phone,
-            current_location: currentLocation || parsed.current_location,
-            current_company: parsed.current_company,
-            current_title: parsed.current_title,
-            total_experience: parsed.total_experience_years,
-            skills: parsed.skills,
-            education: parsed.education,
-            work_experience: parsed.work_experience,
-            resume_url: resumePath,
-            resume_raw_text: rawText,
-            resume_embedding: embedding,
-            languages: parsed.languages,
-            linkedin_url: parsed.linkedin_url,
-            github_url: parsed.github_url,
-            portfolio_url: parsed.portfolio_url,
-          })
-          .select("id")
-          .single();
-        if (insertErr) throw new Error(insertErr.message);
-        candidateId = inserted.id;
-      }
+        .single();
+      if (upsertErr) throw new Error(upsertErr.message);
+      candidateId = upserted.id;
     } else {
       const { data: inserted, error: insertErr } = await supabase
         .from("candidates")
         .insert({
           org_id: job.org_id,
-          full_name: fullName || parsed.full_name,
-          phone: phone || parsed.phone,
-          current_location: currentLocation || parsed.current_location,
-          current_company: parsed.current_company,
-          current_title: parsed.current_title,
-          total_experience: parsed.total_experience_years,
-          skills: parsed.skills,
-          education: parsed.education,
-          work_experience: parsed.work_experience,
-          resume_url: resumePath,
-          resume_raw_text: rawText,
-          resume_embedding: embedding,
-          languages: parsed.languages,
-          linkedin_url: parsed.linkedin_url,
-          github_url: parsed.github_url,
-          portfolio_url: parsed.portfolio_url,
+          ...candidateFields,
         })
         .select("id")
         .single();

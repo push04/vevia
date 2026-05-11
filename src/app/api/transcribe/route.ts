@@ -20,6 +20,19 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
+    if (file.size > 25 * 1024 * 1024) {
+      return NextResponse.json(
+        { success: false, error: "File too large. Maximum size is 25MB." },
+        { status: 400 },
+      );
+    }
+    const allowedTypes = ["audio/mpeg", "audio/wav", "audio/mp4", "audio/ogg", "video/mp4", "video/webm"];
+    if (!allowedTypes.includes(file.type)) {
+      return NextResponse.json(
+        { success: false, error: "Unsupported file type." },
+        { status: 400 },
+      );
+    }
 
     const groq = createGroqClient();
 

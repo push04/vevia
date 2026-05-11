@@ -1,4 +1,4 @@
-import { createGroqClient } from "./client";
+import { createGroqClient, withRetry } from "./client";
 import { requireEnv } from "../env";
 
 export interface GeneratedJobDetails {
@@ -10,27 +10,29 @@ export async function generateJobDetails(title: string): Promise<GeneratedJobDet
   requireEnv("GROQ_API_KEY");
   const groq = createGroqClient();
 
-  const result = await groq.chat.completions.create({
-    model: process.env.GROQ_MODEL_LARGE ?? "llama-3.3-70b-versatile",
-    messages: [
-      {
-        role: "system",
-        content: `You are an expert talent acquisition specialist for a modern Indian technology company. You write compelling, precise, and professional job descriptions that attract top-tier candidates. Always respond with valid JSON only.`,
-      },
-      {
-        role: "user",
-        content: `Write a professional job posting for the role: "${title}"
+  const result = await withRetry(() =>
+    groq.chat.completions.create({
+      model: process.env.GROQ_MODEL_LARGE ?? "llama-3.3-70b-versatile",
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert talent acquisition specialist for a modern Indian technology company. You write compelling, precise, and professional job descriptions that attract top-tier candidates. Always respond with valid JSON only.`,
+        },
+        {
+          role: "user",
+          content: `Write a professional job posting for the role: "${title}"
 
 Return a JSON object with exactly these two fields:
 - "description": A 2-3 paragraph compelling job description covering the role overview, key responsibilities, and what makes this role exciting. Keep it concise (max 300 words).
 - "requirements": An array of exactly 6 clear, specific requirements (strings, each max 80 chars).
 
 Respond with ONLY the JSON object, no markdown, no explanation.`,
-      },
-    ],
-    temperature: 0.7,
-    max_tokens: 800,
-  });
+        },
+      ],
+      temperature: 0.7,
+      max_tokens: 800,
+    }),
+  );
 
   const raw = result.choices[0]?.message?.content ?? "{}";
   

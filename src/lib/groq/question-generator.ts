@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { requireEnv } from "../env";
 import { containsProhibitedTopic } from "../compliance/pii";
-import { createGroqClient } from "./client";
+import { createGroqClient, withRetry } from "./client";
 import { screeningQuestionPrompt } from "./prompts";
 
 const QuestionTypeSchema = z.enum(["yes_no", "short_text", "mcq", "number"]);
@@ -51,12 +51,14 @@ export async function generateScreeningQuestions(params: {
     language,
   });
 
-  const result = await groq.chat.completions.create({
-    model,
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.4,
-    response_format: { type: "json_object" },
-  });
+  const result = await withRetry(() =>
+    groq.chat.completions.create({
+      model,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.4,
+      response_format: { type: "json_object" },
+    }),
+  );
 
   const content = result.choices?.[0]?.message?.content;
   if (!content) throw new Error("Groq returned empty content");

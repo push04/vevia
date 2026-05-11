@@ -1,6 +1,6 @@
 const DIMENSIONS = 384;
 const MODEL_ID = "Xenova/all-MiniLM-L6-v2";
-const EMBEDDING_TIMEOUT_MS = 5_000;
+const EMBEDDING_TIMEOUT_MS = 30_000;
 
 type Extractor = (input: string | string[], options?: unknown) => Promise<{
   dims?: number[];

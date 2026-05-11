@@ -37,7 +37,6 @@ function initials(nameOrEmail: string) {
 }
 
 export function PipelineView(props: {
-  jobId: string;
   jobTitle: string;
   applications: ApplicationRow[];
   onScore: (applicationId: string) => Promise<void>;
@@ -163,7 +162,11 @@ export function PipelineView(props: {
                             onClick={(e) => {
                               e.stopPropagation();
                               startTransition(async () => {
-                                await props.onScore(a.id);
+                                try {
+                                  await props.onScore(a.id);
+                                } catch {
+                                  // scoring failure is non-fatal
+                                }
                               });
                             }}
                             type="button"

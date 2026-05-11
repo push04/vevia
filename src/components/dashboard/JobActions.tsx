@@ -14,13 +14,21 @@ export function JobActions({ jobId, status, toggleStatusAction, deleteAction }: 
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   async function handleToggle() {
-    const next = status === "active" ? "paused" : status === "paused" ? "active" : "active";
-    await toggleStatusAction(jobId, next);
+    try {
+      const next = status === "active" ? "paused" : status === "paused" ? "active" : "active";
+      await toggleStatusAction(jobId, next);
+    } catch {
+      // toggle failure is non-fatal
+    }
     setOpen(false);
   }
 
   async function handleDelete() {
-    await deleteAction(jobId);
+    try {
+      await deleteAction(jobId);
+    } catch {
+      // delete failure is non-fatal
+    }
     setOpen(false);
   }
 
