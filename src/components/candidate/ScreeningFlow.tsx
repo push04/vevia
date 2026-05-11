@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
 type Question = { q: string; type: string; options?: { id: string; title: string; ideal: boolean }[]; preferred_yes?: boolean };
-type ExistingAnswer = { question: string; answer: string; score: number };
 
 type Props = {
   applicationId: string;

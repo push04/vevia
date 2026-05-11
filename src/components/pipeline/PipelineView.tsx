@@ -36,6 +36,126 @@ function initials(nameOrEmail: string) {
   return "U";
 }
 
+function RawExplanation({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = text.length > 200;
+  if (!isLong) {
+    return (
+      <div className="text-xs text-text-secondary bg-surface-container-low rounded-lg p-sm font-mono leading-relaxed whitespace-pre-wrap break-all">
+        {text}
+      </div>
+    );
+  }
+  return (
+    <div className="text-xs text-text-secondary bg-surface-container-low rounded-lg p-sm font-mono leading-relaxed">
+      {expanded ? (
+        <div className="whitespace-pre-wrap break-all">{text}</div>
+      ) : (
+        <div className="whitespace-pre-wrap break-all line-clamp-3">{text}</div>
+      )}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="mt-1 text-primary hover:underline text-xs"
+        type="button"
+      >
+        {expanded ? "Show less" : "Read more"}
+      </button>
+    </div>
+  );
+}
+
+function ScorecardPanel({ selected }: { selected: ApplicationRow | null }) {
+  return (
+    <>
+      <div className="p-md border-b border-outline-variant bg-surface-base">
+        <div className="flex items-center justify-between">
+          <h3 className="font-display text-h2 font-bold text-primary">AI Scorecard</h3>
+        </div>
+        <p className="font-caption text-caption text-text-secondary">
+          Explainable rationale for the current rank.
+        </p>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-md space-y-md">
+        {selected ? (
+          <>
+            <div className="bg-surface-base rounded border border-outline-variant p-sm shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-2xs">
+                <h4 className="font-label text-label uppercase tracking-widest text-text-secondary flex items-center gap-2xs">
+                  <span className="material-symbols-outlined text-[16px] text-semantic-success">
+                    verified
+                  </span>
+                  Composite Score
+                </h4>
+                <span className="text-semantic-success font-bold text-display tabular-nums">
+                  {typeof selected.composite_score === "number"
+                    ? Math.round(selected.composite_score)
+                    : "--"}
+                </span>
+              </div>
+              <p className="font-caption text-caption text-text-secondary">
+                {selected.candidate?.full_name ?? selected.candidate?.email ?? "Candidate"} -{" "}
+                {selected.status ?? "unknown"}
+              </p>
+            </div>
+
+            <div className="bg-surface-base rounded border border-outline-variant p-sm shadow-sm hover:shadow-md transition-shadow">
+              <div className="font-label text-label text-text-secondary uppercase tracking-wide">
+                Component scores
+              </div>
+              <div className="mt-sm grid grid-cols-2 gap-2xs font-caption text-caption text-text-secondary tabular-nums">
+                <div>Resume: {selected.resume_score ?? "--"}</div>
+                <div>Screen: {selected.screening_score ?? "--"}</div>
+                <div>Test: {selected.test_score ?? "--"}</div>
+                <div>Video: {selected.video_score ?? "--"}</div>
+              </div>
+            </div>
+
+            <div className="bg-surface-base rounded border border-outline-variant p-sm shadow-sm hover:shadow-md transition-shadow">
+              <div className="font-label text-label text-text-secondary uppercase tracking-wide">
+                Explanation
+              </div>
+              <div className="mt-sm font-caption text-caption text-text-secondary leading-relaxed space-y-2xs">
+                {(() => {
+                  if (!selected.score_explanation) return <div>No explanation yet.</div>;
+                  try {
+                    const parsed = JSON.parse(selected.score_explanation) as {
+                      summary?: string;
+                      bullets?: string[];
+                    };
+                    return (
+                      <>
+                        {parsed.summary ? (
+                          <div className="text-text-primary">{parsed.summary}</div>
+                        ) : null}
+                        {Array.isArray(parsed.bullets) && parsed.bullets.length ? (
+                          <ul className="list-disc pl-md space-y-3xs">
+                            {parsed.bullets.slice(0, 8).map((b) => (
+                              <li key={b}>{b}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <RawExplanation text={selected.score_explanation} />
+                        )}
+                      </>
+                    );
+                  } catch {
+                    return <RawExplanation text={selected.score_explanation} />;
+                  }
+                })()}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="bg-surface-container-low border border-outline-variant rounded-lg p-md">
+            <p className="font-body-base text-body-base text-text-secondary">Select a candidate to view details.</p>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
 export function PipelineView(props: {
   jobTitle: string;
   applications: ApplicationRow[];
@@ -45,6 +165,7 @@ export function PipelineView(props: {
     props.applications[0]?.id ?? null,
   );
   const [pending, startTransition] = useTransition();
+  const [scorecardOpen, setScorecardOpen] = useState(false);
 
   const selected = useMemo(
     () => props.applications.find((a) => a.id === selectedId) ?? null,
@@ -182,7 +303,7 @@ export function PipelineView(props: {
               <div className="bg-surface-container-low border border-outline-variant rounded-lg p-md">
                 <p className="font-body-base text-body-base text-text-primary">No applications yet.</p>
                 <p className="font-caption text-caption text-text-secondary mt-2xs">
-                  Share the apply endpoint for this job to start receiving candidates.
+                  Share the apply endpoint for this job to start receiving applications.
                 </p>
               </div>
             </div>
@@ -190,94 +311,101 @@ export function PipelineView(props: {
         </div>
       </div>
 
-      {/* Scorecard */}
+      {/* Scorecard sidebar (desktop) */}
       <aside className="hidden lg:flex w-[420px] shrink-0 border-l border-outline-variant bg-surface flex-col">
-        <div className="p-md border-b border-outline-variant bg-surface-base">
-          <div className="flex items-center justify-between">
-            <h3 className="font-display text-h2 font-bold text-primary">AI Scorecard</h3>
-          </div>
-          <p className="font-caption text-caption text-text-secondary">
-            Explainable rationale for the current rank.
-          </p>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-md space-y-md">
-          {selected ? (
-            <>
-              <div className="bg-surface-base rounded border border-outline-variant p-sm shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between mb-2xs">
-                  <h4 className="font-label text-label uppercase tracking-widest text-text-secondary flex items-center gap-2xs">
-                    <span className="material-symbols-outlined text-[16px] text-semantic-success">
-                      verified
-                    </span>
-                    Composite Score
-                  </h4>
-                  <span className="text-semantic-success font-bold text-display tabular-nums">
-                    {typeof selected.composite_score === "number"
-                      ? Math.round(selected.composite_score)
-                      : "--"}
-                  </span>
-                </div>
-                <p className="font-caption text-caption text-text-secondary">
-                  {selected.candidate?.full_name ?? selected.candidate?.email ?? "Candidate"} -{" "}
-                  {selected.status ?? "unknown"}
-                </p>
-              </div>
-
-              <div className="bg-surface-base rounded border border-outline-variant p-sm shadow-sm hover:shadow-md transition-shadow">
-                <div className="font-label text-label text-text-secondary uppercase tracking-wide">
-                  Component scores
-                </div>
-                <div className="mt-sm grid grid-cols-2 gap-2xs font-caption text-caption text-text-secondary tabular-nums">
-                  <div>Resume: {selected.resume_score ?? "--"}</div>
-                  <div>Screen: {selected.screening_score ?? "--"}</div>
-                  <div>Test: {selected.test_score ?? "--"}</div>
-                  <div>Video: {selected.video_score ?? "--"}</div>
-                </div>
-              </div>
-              
-              <div className="bg-surface-base rounded border border-outline-variant p-sm shadow-sm hover:shadow-md transition-shadow">
-                <div className="font-label text-label text-text-secondary uppercase tracking-wide">
-                  Explanation
-                </div>
-                <div className="mt-sm font-caption text-caption text-text-secondary leading-relaxed space-y-2xs">
-                  {(() => {
-                    if (!selected.score_explanation) return <div>No explanation yet.</div>;
-                    try {
-                      const parsed = JSON.parse(selected.score_explanation) as {
-                        summary?: string;
-                        bullets?: string[];
-                      };
-                      return (
-                        <>
-                          {parsed.summary ? (
-                            <div className="text-text-primary">{parsed.summary}</div>
-                          ) : null}
-                          {Array.isArray(parsed.bullets) && parsed.bullets.length ? (
-                            <ul className="list-disc pl-md space-y-3xs">
-                              {parsed.bullets.slice(0, 8).map((b) => (
-                                <li key={b}>{b}</li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <div>{selected.score_explanation}</div>
-                          )}
-                        </>
-                      );
-                    } catch {
-                      return <div>{selected.score_explanation}</div>;
-                    }
-                  })()}
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="bg-surface-container-low border border-outline-variant rounded-lg p-md">
-              <p className="font-body-base text-body-base text-text-secondary">Select a candidate to view details.</p>
-            </div>
-          )}
-        </div>
+        <ScorecardPanel selected={selected} />
       </aside>
+
+      {/* Mobile scorecard FAB */}
+      <div className="fixed bottom-md right-md lg:hidden z-40">
+        <button
+          onClick={() => setScorecardOpen(true)}
+          className="bg-primary text-white px-sm py-xs rounded-full shadow-lg flex items-center gap-xs text-xs font-semibold"
+          type="button"
+        >
+          <span className="material-symbols-outlined text-[16px]">analytics</span>
+          Scorecard
+        </button>
+      </div>
+
+      {/* Mobile scorecard drawer */}
+      {scorecardOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setScorecardOpen(false)} />
+          <div className="absolute right-0 top-0 bottom-0 w-[90vw] max-w-[420px] bg-surface border-l border-outline-variant flex flex-col shadow-xl">
+            <div className="flex items-center justify-between p-md border-b border-outline-variant bg-surface-base">
+              <h3 className="font-display text-h2 font-bold text-primary">AI Scorecard</h3>
+              <button
+                onClick={() => setScorecardOpen(false)}
+                className="p-1 hover:bg-surface-container-low rounded"
+                type="button"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-md space-y-md">
+              {selected ? (
+                <>
+                  <div className="bg-surface-base rounded border border-outline-variant p-sm shadow-sm">
+                    <div className="flex items-center justify-between mb-2xs">
+                      <h4 className="font-label text-label uppercase tracking-widest text-text-secondary flex items-center gap-2xs">
+                        <span className="material-symbols-outlined text-[16px] text-semantic-success">verified</span>
+                        Composite Score
+                      </h4>
+                      <span className="text-semantic-success font-bold text-display tabular-nums">
+                        {typeof selected.composite_score === "number" ? Math.round(selected.composite_score) : "--"}
+                      </span>
+                    </div>
+                    <p className="font-caption text-caption text-text-secondary">
+                      {selected.candidate?.full_name ?? selected.candidate?.email ?? "Candidate"} - {selected.status ?? "unknown"}
+                    </p>
+                  </div>
+
+                  <div className="bg-surface-base rounded border border-outline-variant p-sm shadow-sm">
+                    <div className="font-label text-label text-text-secondary uppercase tracking-wide">Component scores</div>
+                    <div className="mt-sm grid grid-cols-2 gap-2xs font-caption text-caption text-text-secondary tabular-nums">
+                      <div>Resume: {selected.resume_score ?? "--"}</div>
+                      <div>Screen: {selected.screening_score ?? "--"}</div>
+                      <div>Test: {selected.test_score ?? "--"}</div>
+                      <div>Video: {selected.video_score ?? "--"}</div>
+                    </div>
+                  </div>
+
+                  <div className="bg-surface-base rounded border border-outline-variant p-sm shadow-sm">
+                    <div className="font-label text-label text-text-secondary uppercase tracking-wide">Explanation</div>
+                    <div className="mt-sm font-caption text-caption text-text-secondary leading-relaxed space-y-2xs">
+                      {(() => {
+                        if (!selected.score_explanation) return <div>No explanation yet.</div>;
+                        try {
+                          const parsed = JSON.parse(selected.score_explanation) as { summary?: string; bullets?: string[] };
+                          return (
+                            <>
+                              {parsed.summary ? <div className="text-text-primary">{parsed.summary}</div> : null}
+                              {Array.isArray(parsed.bullets) && parsed.bullets.length ? (
+                                <ul className="list-disc pl-md space-y-3xs">
+                                  {parsed.bullets.slice(0, 8).map((b) => <li key={b}>{b}</li>)}
+                                </ul>
+                              ) : (
+                                <RawExplanation text={selected.score_explanation} />
+                              )}
+                            </>
+                          );
+                        } catch {
+                          return <RawExplanation text={selected.score_explanation} />;
+                        }
+                      })()}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="bg-surface-container-low border border-outline-variant rounded-lg p-md">
+                  <p className="font-body-base text-body-base text-text-secondary">Select a candidate to view details.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

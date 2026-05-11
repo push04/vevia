@@ -13,34 +13,69 @@ export async function GET(req: NextRequest) {
     if (!orgId) {
       return NextResponse.json({ success: false, error: "Missing org_id" }, { status: 400 });
     }
+    const jobId = url.searchParams.get("job_id");
 
     const supabase = createAdminClient();
-    const { data, error } = await supabase
+    
+    let query = supabase
       .from("applications")
-      .select("applied_at, screened_at")
+      .select("applied_at, screened_at, status")
       .eq("org_id", orgId);
+    if (jobId) query = query.eq("job_id", jobId);
+
+    const { data, error } = await query;
     if (error) throw new Error(error.message);
 
-    const deltasDays: number[] = [];
+    const appliedToScreenedTimes: number[] = [];
+    const appliedToHiredTimes: number[] = [];
+    const appliedToShortlistedTimes: number[] = [];
+
     for (const row of data ?? []) {
-      if (!row.applied_at || !row.screened_at) continue;
-      const start = new Date(row.applied_at).getTime();
-      const end = new Date(row.screened_at).getTime();
-      if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) continue;
-      deltasDays.push((end - start) / (1000 * 60 * 60 * 24));
+      const applied = row.applied_at ? new Date(row.applied_at).getTime() : null;
+      if (!applied) continue;
+
+      if (row.screened_at) {
+        const t = (new Date(row.screened_at).getTime() - applied) / (1000 * 60 * 60 * 24);
+        if (t >= 0) appliedToScreenedTimes.push(t);
+      }
+
+      if (row.status === "hired" && row.screened_at) {
+        const t = (new Date(row.screened_at).getTime() - applied) / (1000 * 60 * 60 * 24);
+        if (t >= 0) appliedToHiredTimes.push(t);
+      }
+
+      if (row.status === "shortlisted" && row.screened_at) {
+        const t = (new Date(row.screened_at).getTime() - applied) / (1000 * 60 * 60 * 24);
+        if (t >= 0) appliedToShortlistedTimes.push(t);
+      }
     }
 
-    const avgDays =
-      deltasDays.length === 0
-        ? null
-        : deltasDays.reduce((a, b) => a + b, 0) / deltasDays.length;
+    const avgDays = (arr: number[]) => 
+      arr.length > 0 ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length * 10) / 10 : null;
+
+    const results = {
+      average_days_applied_to_screened: avgDays(appliedToScreenedTimes),
+      average_days_applied_to_shortlisted: avgDays(appliedToShortlistedTimes),
+      average_days_applied_to_hired: avgDays(appliedToHiredTimes),
+    };
+
+    const samples = {
+      screened: appliedToScreenedTimes.length,
+      shortlisted: appliedToShortlistedTimes.length,
+      hired: appliedToHiredTimes.length
+    };
+
+    const pipelineCounts: Record<string, number> = {};
+    for (const row of data ?? []) {
+      const status = row.status ?? "applied";
+      pipelineCounts[status] = (pipelineCounts[status] ?? 0) + 1;
+    }
 
     return NextResponse.json({
       success: true,
-      metrics: {
-        average_days_applied_to_screened: avgDays,
-        samples: deltasDays.length,
-      },
+      metrics: results,
+      samples,
+      pipelineBreakdown: pipelineCounts
     });
   } catch (error) {
     return NextResponse.json(
@@ -49,4 +84,3 @@ export async function GET(req: NextRequest) {
     );
   }
 }
-

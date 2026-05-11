@@ -14,6 +14,24 @@ function slugify(input: string) {
     .slice(0, 48);
 }
 
+function generateUniqueSlug(baseSlug: string): string {
+  const suffix = Math.random().toString(36).substring(2, 6);
+  return `${baseSlug}-${suffix}`;
+}
+
+async function ensureUniqueSlug(admin: ReturnType<typeof createAdminClient>, slug: string): Promise<string> {
+  const { data: existing } = await admin
+    .from("organizations")
+    .select("slug")
+    .eq("slug", slug)
+    .single();
+  
+  if (existing) {
+    return generateUniqueSlug(slug);
+  }
+  return slug;
+}
+
 export async function createOrgAndBindAction(formData: FormData) {
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
@@ -27,10 +45,12 @@ export async function createOrgAndBindAction(formData: FormData) {
   const slugInput = String(formData.get("org_slug") ?? "").trim();
   if (!name) throw new Error("Missing organization name");
 
-  const slug = slugify(slugInput || name);
+  let slug = slugify(slugInput || name);
   if (!slug) throw new Error("Invalid slug");
 
   const admin = createAdminClient();
+  
+  slug = await ensureUniqueSlug(admin, slug);
 
   const { data: org, error: orgError } = await admin
     .from("organizations")

@@ -1,9 +1,9 @@
 import { requireRecruiterContext } from "@/lib/auth/session";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function AnalyticsPage() {
   const ctx = await requireRecruiterContext();
-  const supabase = createAdminClient();
+  const supabase = await createClient();
 
   const [appsRes, jobsRes] = await Promise.all([
     supabase

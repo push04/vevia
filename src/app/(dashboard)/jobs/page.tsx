@@ -19,15 +19,35 @@ const VISIBILITY_BADGE: Record<string, { label: string; icon: string; cls: strin
   link_only: { label: "Link Only", icon: "link",   cls: "text-purple-600 bg-purple-50" },
 };
 
-export default async function JobsPage() {
+type Props = {
+  searchParams: Promise<{ status?: string; search?: string; page?: string }>;
+};
+
+export default async function JobsPage({ searchParams }: Props) {
+  const { status, search, page } = await searchParams;
   const ctx = await requireRecruiterContext();
   const supabase = await createClient();
 
-  const { data: jobs, error } = await supabase
+  const pageNum = Math.max(1, parseInt(page ?? "1", 10));
+  const PAGE_SIZE = 20;
+  const offset = (pageNum - 1) * PAGE_SIZE;
+
+  let query = supabase
     .from("jobs")
-    .select("id, title, status, visibility, public_slug, created_at, application_deadline")
-    .eq("org_id", ctx.orgId)
-    .order("created_at", { ascending: false });
+    .select("id, title, status, visibility, public_slug, created_at, application_deadline", { count: "exact" })
+    .eq("org_id", ctx.orgId);
+
+  if (status && status !== "all") {
+    query = query.eq("status", status);
+  }
+  if (search) {
+    query = query.ilike("title", `%${search}%`);
+  }
+
+  const { data: jobs, error, count } = await query
+    .order("created_at", { ascending: false })
+    .range(offset, offset + PAGE_SIZE - 1);
+
   if (error) throw new Error(error.message);
 
   return (
@@ -49,11 +69,46 @@ export default async function JobsPage() {
       </div>
 
       <div className="mt-md grid grid-cols-1 lg:grid-cols-3 gap-md">
-        {/* Jobs list */}
         <section className="lg:col-span-2 bg-surface rounded-lg border border-outline-variant shadow-sm overflow-hidden">
-          <div className="px-md py-sm bg-surface-container-low border-b border-outline-variant flex items-center justify-between">
-            <span className="font-label text-label text-text-secondary uppercase tracking-wide">Openings</span>
-            <span className="font-caption text-caption text-text-secondary">{jobs?.length ?? 0} total</span>
+          <div className="px-md py-sm bg-surface-container-low border-b border-outline-variant">
+            <div className="flex items-center justify-between gap-sm mb-sm">
+              <span className="font-label text-label text-text-secondary uppercase tracking-wide">Openings</span>
+              <span className="font-caption text-caption text-text-secondary">{count ?? 0} total</span>
+            </div>
+            <div className="flex items-center gap-sm">
+              <form className="flex items-center gap-xs flex-1">
+                <input type="hidden" name="status" value={status ?? ""} />
+                <input
+                  type="text"
+                  name="search"
+                  defaultValue={search ?? ""}
+                  placeholder="Search by title..."
+                  className="flex-1 min-w-[120px] bg-surface border border-outline-variant rounded-lg px-sm py-xs text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                />
+                <button
+                  type="submit"
+                  className="px-sm py-xs bg-primary text-white text-sm rounded-lg hover:opacity-90"
+                >
+                  Search
+                </button>
+              </form>
+              <form className="flex items-center gap-xs">
+                {search && <input type="hidden" name="search" value={search} />}
+                <select
+                  name="status"
+                  defaultValue={status ?? "all"}
+                  onChange={(e) => e.target.form?.submit()}
+                  className="bg-surface border border-outline-variant rounded-lg px-sm py-xs text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                >
+                  <option value="all">All status</option>
+                  <option value="draft">Draft</option>
+                  <option value="active">Active</option>
+                  <option value="paused">Paused</option>
+                  <option value="closed">Closed</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </form>
+            </div>
           </div>
 
           {jobs?.length ? (
@@ -61,71 +116,67 @@ export default async function JobsPage() {
               {jobs.map((job) => {
                 const vis = VISIBILITY_BADGE[job.visibility ?? "public"];
                 return (
-                  <div key={job.id} className="px-md py-sm">
-                    <div className="flex items-center justify-between gap-sm">
-                      <Link
-                        className="min-w-0 flex-1 hover:text-primary transition-colors"
-                        href={`/jobs/${job.id}/candidates`}
-                      >
-                        <div className="font-body-large text-body-large text-primary truncate">{job.title}</div>
-                        <div className="flex items-center gap-xs mt-1 flex-wrap">
-                          <span className={`inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full ${STATUS_BADGE[job.status ?? "draft"]}`}>
-                            {job.status}
+                  <Link
+                    key={job.id}
+                    href={`/jobs/${job.id}/candidates`}
+                    className="px-md py-sm hover:bg-surface-elevated transition-colors flex items-center justify-between gap-sm"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="font-body-large text-body-large text-primary truncate">{job.title}</div>
+                      <div className="flex items-center gap-xs mt-1 flex-wrap">
+                        <span className={`inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full ${STATUS_BADGE[job.status ?? "draft"]}`}>
+                          {job.status}
+                        </span>
+                        {vis ? (
+                          <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${vis.cls}`}>
+                            <span className="material-symbols-outlined text-[11px]">{vis.icon}</span>
+                            {vis.label}
                           </span>
-                          {vis && (
-                            <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full ${vis.cls}`}>
-                              <span className="material-symbols-outlined text-[11px]">{vis.icon}</span>
-                              {vis.label}
-                            </span>
-                          )}
-                          <span className="font-caption text-caption text-text-secondary">
-                            {job.created_at ? new Date(job.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "—"}
+                        ) : null}
+                        <span className="font-caption text-caption text-text-secondary">
+                          {job.created_at ? new Date(job.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "---"}
+                        </span>
+                        {job.application_deadline ? (
+                          <span className={`font-caption text-caption ${new Date(job.application_deadline) < new Date() ? "text-red-500" : "text-text-secondary"}`}>
+                            Closes {new Date(job.application_deadline).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                           </span>
-                          {job.application_deadline && (
-                            <span className={`font-caption text-caption ${new Date(job.application_deadline) < new Date() ? "text-red-500" : "text-text-secondary"}`}>
-                              Closes {new Date(job.application_deadline).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-                            </span>
-                          )}
-                        </div>
-                      </Link>
-                      <div className="flex items-center gap-xs shrink-0">
-                        <Link
-                          href={`/jobs/${job.id}/candidates`}
-                          className="p-1.5 text-text-secondary hover:text-primary hover:bg-surface-container-low rounded-lg transition-colors"
-                          title="View pipeline"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">group</span>
-                        </Link>
-                        {job.public_slug && (
-                          <ShareLinkButton slug={job.public_slug} size="sm" />
-                        )}
-                        <JobActions
-                          jobId={job.id}
-                          status={job.status ?? "draft"}
-                          toggleStatusAction={toggleJobStatusAction}
-                          deleteAction={deleteJobAction}
-                        />
+                        ) : null}
                       </div>
                     </div>
-                  </div>
+                    <div className="flex items-center gap-xs shrink-0">
+                      <span
+                        className="p-1.5 text-text-secondary hover:text-primary hover:bg-surface-container-low rounded-lg transition-colors"
+                        title="View pipeline"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">group</span>
+                      </span>
+                      {job.public_slug ? (
+                        <ShareLinkButton slug={job.public_slug} size="sm" />
+                      ) : null}
+                      <JobActions
+                        jobId={job.id}
+                        status={job.status ?? "draft"}
+                        toggleStatusAction={toggleJobStatusAction}
+                        deleteAction={deleteJobAction}
+                      />
+                    </div>
+                  </Link>
                 );
               })}
             </div>
           ) : (
             <div className="p-lg text-center">
               <span className="material-symbols-outlined text-text-secondary/30 text-[48px] block">work_off</span>
-              <p className="font-body-base text-body-base text-text-secondary mt-sm">No jobs yet.</p>
-              <p className="font-caption text-caption text-text-secondary mt-2xs">
-                Create your first opening to start receiving applications.
-              </p>
-              <a href="#new-job" className="mt-sm inline-flex bg-primary text-on-primary text-sm font-medium px-md py-xs rounded-lg hover:bg-surface-tint transition-colors">
-                Create job
-              </a>
+              <p className="font-body-base text-body-base text-text-secondary mt-sm">No jobs found.</p>
+              {(status !== "all" || search) ? (
+                <a href="?" className="mt-sm inline-flex text-primary text-sm hover:underline">
+                  Clear filters
+                </a>
+              ) : null}
             </div>
           )}
         </section>
 
-        {/* Create job form */}
         <aside id="new-job" className="bg-surface rounded-lg border border-outline-variant shadow-sm p-md">
           <h3 className="font-h2 text-h2 text-primary mb-2xs">Create job</h3>
           <p className="font-caption text-caption text-text-secondary mb-sm">

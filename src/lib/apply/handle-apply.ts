@@ -5,7 +5,6 @@ import { extractTextFromFile } from "@/lib/pdf/extract";
 import { parseResume } from "@/lib/groq/resume-parser";
 import { generateEmbedding } from "@/lib/embeddings/generate";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { scoreAnswer } from "@/lib/groq/answer-scorer";
 import { scrapeLinkedInProfile } from "@/lib/linkedin/scrape";
 
 export async function handleApply(req: NextRequest, slug: string) {

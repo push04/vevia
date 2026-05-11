@@ -1,12 +1,12 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requireRecruiterContext } from "@/lib/auth/session";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function CandidateDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const ctx = await requireRecruiterContext();
   const { id } = await params;
-  const supabase = createAdminClient();
+  const supabase = await createClient();
 
   const { data: candidate, error } = await supabase
     .from("candidates")
@@ -233,9 +233,15 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
                       </div>
                       {app.score_explanation && (
                         <div className="mt-sm text-xs text-text-secondary bg-surface-container-low rounded-lg p-sm leading-relaxed">
-                          {typeof app.score_explanation === "string"
-                            ? (() => { try { const p = JSON.parse(app.score_explanation); return p.summary ?? app.score_explanation; } catch { return app.score_explanation; } })()
-                            : "—"}
+                          {(() => {
+                            const raw = typeof app.score_explanation === "string" ? app.score_explanation : "";
+                            try {
+                              const p = JSON.parse(raw);
+                              return p.summary ?? raw;
+                            } catch {
+                              return raw;
+                            }
+                          })()}
                         </div>
                       )}
                     </div>

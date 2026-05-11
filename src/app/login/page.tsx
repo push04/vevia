@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+const PRODUCT_NAME = "Vevia";
+
 function getErrorMessage(error: unknown) {
   if (!error) return null;
   if (error instanceof Error) return error.message;
@@ -59,7 +61,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-background flex items-center justify-center px-sm py-lg">
       <div className="w-full max-w-[448px] bg-surface rounded-xl border border-outline-variant shadow-sm p-lg">
         <div className="mb-md">
-          <h1 className="font-display text-[28px] font-bold text-primary">Vevia</h1>
+          <h1 className="font-display text-[28px] font-bold text-primary">{PRODUCT_NAME}</h1>
           <p className="font-body-base text-body-base text-text-secondary mt-1">
             {mode === "signIn" ? "Sign in to your account." : "Create your recruiter account."}
           </p>

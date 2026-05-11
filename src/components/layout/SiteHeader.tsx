@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useState, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 
+const PRODUCT_NAME = "Vevia";
+
 export function SiteHeader() {
   const supabase = useMemo(() => {
     if (typeof window === "undefined") return null;
@@ -44,10 +46,10 @@ export function SiteHeader() {
   return (
     <header className="fixed top-0 left-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-outline-variant transition-all">
       <div className="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
-        <Link href="/" className="font-display font-bold text-2xl text-primary flex items-center gap-2 hover:opacity-80 transition-opacity">
-           <span className="material-symbols-outlined text-blue-600 text-[28px]">psychology</span>
-           Vevia
-        </Link>
+         <Link href="/" className="font-display font-bold text-2xl text-primary flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <span className="material-symbols-outlined text-blue-600 text-[28px]">psychology</span>
+            {PRODUCT_NAME}
+         </Link>
         <nav className="flex items-center gap-6">
           <Link href="/how-it-works" className="text-sm font-semibold text-text-secondary hover:text-primary transition-colors hidden sm:block">
             How it works
@@ -72,7 +74,7 @@ export function SiteHeader() {
                 Sign in
               </Link>
               <Link href="/login" className="text-sm font-bold bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm hover:shadow">
-                Register
+                Sign in
               </Link>
             </div>
           )}

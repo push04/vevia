@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { requireRecruiterContext } from "@/lib/auth/session";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const ctx = await requireRecruiterContext();
-  const supabase = createAdminClient();
+  const supabase = await createClient();
 
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();

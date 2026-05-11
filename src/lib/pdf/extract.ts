@@ -60,7 +60,7 @@ function ensureBrowserGlobals(): void {
 
     class DOMMatrix extends DOMMatrixReadOnly {
       constructor(init?: string | number[]) { super(init); }
-      multiply(other: DOMMatrix): DOMMatrix { return this; }
+      multiply(_other: DOMMatrix): DOMMatrix { return this; }
       invertSelf(): DOMMatrix { return this; }
     }
 

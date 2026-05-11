@@ -1,13 +1,13 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requireRecruiterContext } from "@/lib/auth/session";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { ShareLinkButton } from "@/components/dashboard/ShareLinkButton";
 
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const ctx = await requireRecruiterContext();
   const { id: jobId } = await params;
-  const supabase = createAdminClient();
+  const supabase = await createClient();
 
   const { data: job, error } = await supabase
     .from("jobs")
@@ -183,7 +183,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
               {[
                 { label: "Type", value: job.employment_type?.replace("_", " ") },
                 { label: "Experience", value: job.experience_min != null ? `${job.experience_min}–${job.experience_max ?? "+"} yrs` : null },
-                { label: "CTC", value: job.ctc_min != null ? `Rs ${(job.ctc_min/100000).toFixed(1)}L – Rs ${((job.ctc_max ?? job.ctc_min)/100000).toFixed(1)}L` : null },
+                { label: "CTC", value: job.ctc_min != null ? (job.ctc_max != null ? `Rs ${(job.ctc_min/100000).toFixed(1)}L – Rs ${(job.ctc_max/100000).toFixed(1)}L` : `Rs ${(job.ctc_min/100000).toFixed(1)}L+`) : null },
                 { label: "Deadline", value: job.application_deadline ? new Date(job.application_deadline).toLocaleDateString("en-IN") : null },
                 { label: "Public slug", value: job.public_slug ?? null },
               ].filter(d => d.value).map(d => (
