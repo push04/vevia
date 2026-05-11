@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS jobs (
   status            TEXT DEFAULT 'draft'
                     CHECK (status IN ('draft','active','paused','closed','archived')),
   visibility        TEXT DEFAULT 'public'
-                    CHECK (visibility IN ('public', 'link_only')),
+                    CHECK (visibility IN ('draft', 'public', 'link_only')),
   application_deadline DATE,
   chatbot_enabled   BOOLEAN DEFAULT TRUE,
   whatsapp_enabled  BOOLEAN DEFAULT FALSE,
@@ -119,6 +119,7 @@ CREATE TABLE IF NOT EXISTS candidates (
   source           TEXT DEFAULT 'application' CHECK (source IN ('application','sourced','referral','agency','walk_in')),
   whatsapp_number  TEXT,
   preferred_language TEXT DEFAULT 'en' CHECK (preferred_language IN ('en','hi','ta','te','bn','mr')),
+  user_id          UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   created_at       TIMESTAMPTZ DEFAULT NOW(),
   updated_at       TIMESTAMPTZ DEFAULT NOW()
 );
@@ -288,6 +289,7 @@ CREATE INDEX IF NOT EXISTS idx_applications_job_id ON applications(job_id);
 CREATE INDEX IF NOT EXISTS idx_applications_status ON applications(status);
 CREATE INDEX IF NOT EXISTS idx_applications_composite_score ON applications(composite_score DESC NULLS LAST);
 CREATE INDEX IF NOT EXISTS idx_candidates_email ON candidates(email);
+CREATE INDEX IF NOT EXISTS idx_candidates_user_id ON candidates(user_id);
 CREATE INDEX IF NOT EXISTS idx_candidates_skills ON candidates USING GIN(skills);
 CREATE INDEX IF NOT EXISTS idx_jobs_org_status ON jobs(org_id, status);
 CREATE INDEX IF NOT EXISTS idx_jobs_public_slug ON jobs(public_slug);
@@ -351,7 +353,7 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
   INSERT INTO public.users (id, email, created_at)
-  VALUES (NEW.id, NEW.email, NOW())
+  VALUES (NEW.id, COALESCE(NEW.email, ''), NOW())
   ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
 END;
@@ -361,6 +363,24 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- =============================================================
+-- FUNCTION: link_candidate_to_user (from migration 006)
+-- =============================================================
+CREATE OR REPLACE FUNCTION public.link_candidate_to_user()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  UPDATE public.candidates
+  SET user_id = NEW.id
+  WHERE email = NEW.email AND user_id IS NULL;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created_link_candidate ON auth.users;
+CREATE TRIGGER on_auth_user_created_link_candidate
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.link_candidate_to_user();
 
 -- =============================================================
 -- ROW LEVEL SECURITY

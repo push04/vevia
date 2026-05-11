@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { requireInternalAuth } from "@/lib/auth/internal";
 import { requireEnv } from "@/lib/env";
 import { scoreAnswer } from "@/lib/groq/answer-scorer";
 
 export async function POST(req: NextRequest) {
+  const authError = requireInternalAuth(req);
+  if (authError) return authError;
+
   try {
     requireEnv("GROQ_API_KEY");
     requireEnv("GROQ_MODEL_FAST");

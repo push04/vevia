@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { requireInternalAuth } from "@/lib/auth/internal";
 import { requireEnv } from "@/lib/env";
 import { calculateCompositeScore } from "@/lib/scoring/engine";
 
 export async function POST(req: NextRequest) {
+  const authError = requireInternalAuth(req);
+  if (authError) return authError;
+
   try {
     requireEnv("NEXT_PUBLIC_SUPABASE_URL");
     requireEnv("SUPABASE_SERVICE_ROLE_KEY");

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { requireInternalAuth } from "@/lib/auth/internal";
 import { requireEnv } from "@/lib/env";
 import { extractTextFromFile } from "@/lib/pdf/extract";
 import { parseResume } from "@/lib/groq/resume-parser";
@@ -7,6 +8,9 @@ import { generateEmbedding } from "@/lib/embeddings/generate";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(req: NextRequest) {
+  const authError = requireInternalAuth(req);
+  if (authError) return authError;
+
   try {
     requireEnv("GROQ_API_KEY");
     requireEnv("GROQ_MODEL_LARGE");
