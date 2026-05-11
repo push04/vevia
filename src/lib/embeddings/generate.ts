@@ -23,11 +23,11 @@ async function getExtractor(): Promise<Extractor> {
   if (!extractorPromise) {
     extractorPromise = (async () => {
       try {
-        const { env, pipeline } = await import("@xenova/transformers");
+        const { env, pipeline } = await import("@huggingface/transformers");
 
         env.cacheDir = process.env.TRANSFORMERS_CACHE_DIR ?? "/tmp/transformers-cache";
 
-        const extractor = (await pipeline("feature-extraction", MODEL_ID)) as Extractor;
+        const extractor = await pipeline("feature-extraction", MODEL_ID) as unknown as Extractor;
         return extractor;
       } catch (error) {
         extractorPromise = null;

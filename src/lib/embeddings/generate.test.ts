@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { generateEmbedding } from "./generate";
 
-vi.mock("@xenova/transformers", () => {
+vi.mock("@huggingface/transformers", () => {
   const env = { cacheDir: "" };
   const pipeline = vi.fn(async () => {
     return async () => {

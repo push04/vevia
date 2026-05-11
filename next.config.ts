@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  serverExternalPackages: ["pdfjs-dist", "@xenova/transformers"],
+  serverExternalPackages: ["pdfjs-dist", "@huggingface/transformers"],
 };
 
 export default nextConfig;

@@ -9,7 +9,9 @@ async function whatsappFetch(url: string, options: Record<string, unknown>) {
       const response = await fetch(url, { ...options, signal: controller.signal } as RequestInit);
       if (!response.ok) {
         const text = await response.text();
-        throw new Error(`WhatsApp API error: ${response.status} ${text}`);
+        const err = new Error(`WhatsApp API error: ${response.status} ${text}`);
+        (err as Error & { status: number }).status = response.status;
+        throw err;
       }
       return response;
     } finally {

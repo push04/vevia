@@ -30,7 +30,9 @@ export async function sendEmail(params: {
       });
       if (!response.ok) {
         const text = await response.text();
-        throw new Error(`Resend error: ${response.status} ${text}`);
+        const err = new Error(`Resend error: ${response.status} ${text}`);
+        (err as Error & { status: number }).status = response.status;
+        throw err;
       }
       return response;
     } finally {
