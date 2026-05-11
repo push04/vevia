@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual as cryptoTimingSafeEqual } from "crypto";
 
 import { requireEnv } from "@/lib/env";
 
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
-  const aBytes = new TextEncoder().encode(a);
-  const bBytes = new TextEncoder().encode(b);
-  let result = 0;
-  for (let i = 0; i < aBytes.length; i++) {
-    result |= aBytes[i] ^ bBytes[i];
-  }
-  return result === 0;
+  const aBytes = Buffer.from(a);
+  const bBytes = Buffer.from(b);
+  return cryptoTimingSafeEqual(aBytes, bBytes);
 }
 
 export function requireInternalAuth(req: NextRequest): NextResponse | null {

@@ -106,7 +106,6 @@ export async function extractTextFromFile(
 
     const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
 
-    // Inline the worker in the main thread to avoid needing the worker file at runtime.
     if (
       typeof (globalThis as Record<string, unknown>).pdfjsWorker === "undefined"
     ) {
@@ -117,16 +116,19 @@ export async function extractTextFromFile(
 
     const doc = await pdfjsLib.getDocument({ data: buffer.buffer as ArrayBuffer }).promise;
     const pages: string[] = [];
-    for (let i = 1; i <= doc.numPages; i++) {
-      const page = await doc.getPage(i);
-      const text = await page.getTextContent();
-      pages.push(
-        text.items
-          .map((item) => ("str" in item ? (item as { str: string }).str : ""))
-          .join(" "),
-      );
+    try {
+      for (let i = 1; i <= doc.numPages; i++) {
+        const page = await doc.getPage(i);
+        const text = await page.getTextContent();
+        pages.push(
+          text.items
+            .map((item) => ("str" in item ? (item as { str: string }).str : ""))
+            .join(" "),
+        );
+      }
+    } finally {
+      await doc.destroy();
     }
-    await doc.destroy();
     return pages.join("\n\n");
   }
 

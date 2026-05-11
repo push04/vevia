@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     const supabase = createAdminClient();
     let query = supabase
       .from("applications")
-      .select("id")
+      .select("id, org_id")
       .is("composite_score", null)
       .order("created_at", { ascending: false })
       .limit(limit);
@@ -31,16 +31,15 @@ export async function GET(req: NextRequest) {
     const { data, error } = await query;
     if (error) throw new Error(error.message);
 
-    const ids = (data ?? []).map((r) => r.id);
     const results: Array<{ applicationId: string; ok: boolean; error?: string }> = [];
 
-    for (const applicationId of ids) {
+    for (const { id, org_id: appOrgId } of (data ?? [])) {
       try {
-        await calculateCompositeScore(applicationId);
-        results.push({ applicationId, ok: true });
+        await calculateCompositeScore(id, appOrgId);
+        results.push({ applicationId: id, ok: true });
       } catch (e) {
         results.push({
-          applicationId,
+          applicationId: id,
           ok: false,
           error: e instanceof Error ? e.message : "Unknown error",
         });

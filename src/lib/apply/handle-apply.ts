@@ -134,7 +134,15 @@ export async function handleApply(req: NextRequest, slug: string) {
           .insert({ org_id: job.org_id, email: candidateEmail, ...candidateFields })
           .select("id")
           .single();
-        if (insertErr) throw new Error(insertErr.message);
+        if (insertErr) {
+          if (insertErr.code === "23505") {
+            return NextResponse.json(
+              { success: false, error: "You have already applied to this job." },
+              { status: 409 },
+            );
+          }
+          throw new Error(insertErr.message);
+        }
         candidateRow = inserted;
       }
       candidateId = candidateRow.id;

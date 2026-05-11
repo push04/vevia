@@ -23,8 +23,9 @@ async function whatsappFetch(url: string, options: Record<string, unknown>) {
 export async function sendWhatsAppMessage(to: string, message: string) {
   const phoneId = requireEnv("WHATSAPP_PHONE_NUMBER_ID");
   const token = requireEnv("WHATSAPP_ACCESS_TOKEN");
+  const apiVersion = process.env.WHATSAPP_API_VERSION ?? "v19.0";
 
-  const response = await whatsappFetch(`https://graph.facebook.com/v19.0/${phoneId}/messages`, {
+  const response = await whatsappFetch(`https://graph.facebook.com/${apiVersion}/${phoneId}/messages`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -48,8 +49,9 @@ export async function sendWhatsAppButtons(
 ) {
   const phoneId = requireEnv("WHATSAPP_PHONE_NUMBER_ID");
   const token = requireEnv("WHATSAPP_ACCESS_TOKEN");
+  const apiVersion = process.env.WHATSAPP_API_VERSION ?? "v19.0";
 
-  const response = await whatsappFetch(`https://graph.facebook.com/v19.0/${phoneId}/messages`, {
+  const response = await whatsappFetch(`https://graph.facebook.com/${apiVersion}/${phoneId}/messages`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,

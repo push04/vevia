@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireInternalAuth } from "@/lib/auth/internal";
 import { requireEnv } from "@/lib/env";
 import { calculateCompositeScore } from "@/lib/scoring/engine";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 const BodySchema = z.object({
   applicationId: z.string().min(1),
@@ -29,6 +30,21 @@ export async function POST(req: NextRequest) {
     }
 
     const { applicationId, org_id } = parsed.data;
+
+    const admin = createAdminClient();
+    const { data: app } = await admin
+      .from("applications")
+      .select("id, org_id")
+      .eq("id", applicationId)
+      .eq("org_id", org_id)
+      .single();
+    if (!app) {
+      return NextResponse.json(
+        { success: false, error: "Application not found or access denied" },
+        { status: 404 },
+      );
+    }
+
     const result = await calculateCompositeScore(applicationId, org_id);
     return NextResponse.json({ success: true, result });
   } catch (error) {

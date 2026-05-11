@@ -28,22 +28,20 @@ export function ScreeningFlow({ applicationId, onClose }: Props) {
 
     fetch(`/api/screening/${applicationId}`, { signal: ctrl.signal })
       .then((r) => r.json())
-      .then((data) => {
+      .then(async (data) => {
         if (!mountedRef.current) return;
         if (data.error) { setError(data.error); setLoading(false); return; }
         setQuestions(data.questions);
         setUnansweredIndices(data.unansweredIndices);
         setProgress({ answered: data.existingAnswers?.length ?? 0, total: data.questions.length });
+        setLoading(false);
         if (data.unansweredIndices.length > 0) {
-          setCurrentIdx(0);
-          fetch(`/api/screening/${applicationId}`, {
+          await fetch(`/api/screening/${applicationId}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: "start" }),
-            signal: ctrl.signal,
-          }).catch(() => {});
+          });
         }
-        setLoading(false);
       })
       .catch((err) => {
         if (!mountedRef.current || err?.name === "AbortError") return;

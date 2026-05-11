@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHmac } from "crypto";
 
 import { requireEnv } from "@/lib/env";
 import { sendWhatsAppMessage } from "@/lib/whatsapp/client";
@@ -20,13 +21,51 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ status: "forbidden" }, { status: 403 });
 }
 
+function verifyWhatsAppSignature(body: string, signature: string | null, appSecret: string): boolean {
+  if (!signature) return false;
+  const expected = "sha256=" + createHmac("sha256", appSecret).update(body).digest("hex");
+  if (expected.length !== signature.length) return false;
+  let diff = 0;
+  for (let i = 0; i < expected.length; i++) {
+    diff |= expected.charCodeAt(i) ^ signature.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const message = body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+  const bodyText = await req.text();
+  const signature = req.headers.get("x-hub-signature-256");
+  const appSecret = process.env.WHATSAPP_APP_SECRET ?? process.env.WHATSAPP_ACCESS_TOKEN ?? "";
+
+  if (appSecret && !verifyWhatsAppSignature(bodyText, signature, appSecret)) {
+    return NextResponse.json({ status: "forbidden" }, { status: 403 });
+  }
+
+  let body: unknown;
+  try {
+    body = JSON.parse(bodyText);
+  } catch {
+    return NextResponse.json({ status: "bad_request" }, { status: 400 });
+  }
+
+  const parsedBody = body as {
+    entry?: Array<{
+      changes?: Array<{
+        value?: {
+          messages?: Array<{
+            from?: string;
+            text?: { body?: string };
+            interactive?: { button_reply?: { title?: string } };
+          }>;
+        };
+      }>;
+    }>;
+  };
+  const message = parsedBody?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
   if (!message) return NextResponse.json({ status: "ok" });
 
-  const from: string = message.from;
-  const text: string =
+  const from = message.from ?? "";
+  const text =
     message.text?.body || message.interactive?.button_reply?.title || "";
 
   try {
