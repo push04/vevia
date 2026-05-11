@@ -1,10 +1,28 @@
 import { requireEnv } from "../env";
+import { withRetry } from "../groq/client";
+
+async function whatsappFetch(url: string, options: Record<string, unknown>) {
+  return withRetry(async () => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+    try {
+      const response = await fetch(url, { ...options, signal: controller.signal } as RequestInit);
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`WhatsApp API error: ${response.status} ${text}`);
+      }
+      return response;
+    } finally {
+      clearTimeout(timeout);
+    }
+  });
+}
 
 export async function sendWhatsAppMessage(to: string, message: string) {
   const phoneId = requireEnv("WHATSAPP_PHONE_NUMBER_ID");
   const token = requireEnv("WHATSAPP_ACCESS_TOKEN");
 
-  const response = await fetch(`https://graph.facebook.com/v19.0/${phoneId}/messages`, {
+  const response = await whatsappFetch(`https://graph.facebook.com/v19.0/${phoneId}/messages`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -29,7 +47,7 @@ export async function sendWhatsAppButtons(
   const phoneId = requireEnv("WHATSAPP_PHONE_NUMBER_ID");
   const token = requireEnv("WHATSAPP_ACCESS_TOKEN");
 
-  const response = await fetch(`https://graph.facebook.com/v19.0/${phoneId}/messages`, {
+  const response = await whatsappFetch(`https://graph.facebook.com/v19.0/${phoneId}/messages`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,

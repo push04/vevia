@@ -2,12 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { requireEnv } from "@/lib/env";
 
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  const aBytes = new TextEncoder().encode(a);
+  const bBytes = new TextEncoder().encode(b);
+  let result = 0;
+  for (let i = 0; i < aBytes.length; i++) {
+    result |= aBytes[i] ^ bBytes[i];
+  }
+  return result === 0;
+}
+
 export function requireInternalAuth(req: NextRequest): NextResponse | null {
   const expected = requireEnv("VEVIA_API_TOKEN");
   const auth = req.headers.get("authorization") ?? "";
   const token = auth.startsWith("Bearer ") ? auth.slice("Bearer ".length).trim() : "";
 
-  if (!token || token !== expected) {
+  if (!token || !timingSafeEqual(token, expected)) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
@@ -18,11 +29,11 @@ export function requireCronAuth(req: NextRequest): NextResponse | null {
   const auth = req.headers.get("authorization") ?? "";
   const token = auth.startsWith("Bearer ") ? auth.slice("Bearer ".length).trim() : "";
 
-  if (process.env.VEVIA_API_TOKEN && token && token === process.env.VEVIA_API_TOKEN) {
+  if (process.env.VEVIA_API_TOKEN && token && timingSafeEqual(token, process.env.VEVIA_API_TOKEN)) {
     return null;
   }
 
-  if (process.env.CRON_SECRET && token && token === process.env.CRON_SECRET) {
+  if (process.env.CRON_SECRET && token && timingSafeEqual(token, process.env.CRON_SECRET)) {
     return null;
   }
 

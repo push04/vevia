@@ -1,8 +1,14 @@
+import { z } from "zod";
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireInternalAuth } from "@/lib/auth/internal";
 import { requireEnv } from "@/lib/env";
 import { calculateCompositeScore } from "@/lib/scoring/engine";
+
+const BodySchema = z.object({
+  applicationId: z.string().min(1),
+  org_id: z.string().min(1),
+});
 
 export async function POST(req: NextRequest) {
   const authError = requireInternalAuth(req);
@@ -14,15 +20,15 @@ export async function POST(req: NextRequest) {
     requireEnv("GROQ_API_KEY");
     requireEnv("GROQ_MODEL_LARGE");
 
-    const body = (await req.json()) as { applicationId: string };
-    if (!body?.applicationId) {
+    const parsed = BodySchema.safeParse(await req.json());
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: "Missing applicationId" },
+        { success: false, error: "Invalid body", issues: parsed.error.issues },
         { status: 400 },
       );
     }
 
-    const result = await calculateCompositeScore(body.applicationId);
+    const result = await calculateCompositeScore(parsed.data.applicationId);
     return NextResponse.json({ success: true, result });
   } catch (error) {
     return NextResponse.json(

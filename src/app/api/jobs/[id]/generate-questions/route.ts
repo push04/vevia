@@ -60,7 +60,8 @@ export async function POST(
     const { error: updateError } = await supabase
       .from("jobs")
       .update({ screening_questions: questions })
-      .eq("id", job.id);
+      .eq("id", job.id)
+      .eq("org_id", body.data.org_id);
     if (updateError) throw new Error(updateError.message);
 
     return NextResponse.json({ success: true, questions });

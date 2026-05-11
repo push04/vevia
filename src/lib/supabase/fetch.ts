@@ -14,9 +14,8 @@ export async function supabaseFetch(input: RequestInfo | URL, init?: RequestInit
   const existingSignal = init?.signal;
 
   const signal =
-    typeof AbortSignal !== "undefined" && "any" in AbortSignal && existingSignal
-      ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (AbortSignal as any).any([existingSignal, controller.signal])
+    typeof AbortSignal !== "undefined" && typeof AbortSignal.any !== "undefined" && existingSignal
+      ? AbortSignal.any([existingSignal, controller.signal])
       : controller.signal;
 
   const timeout = setTimeout(() => controller.abort(), timeoutMs);

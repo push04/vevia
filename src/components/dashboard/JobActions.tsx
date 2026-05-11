@@ -63,7 +63,7 @@ export function JobActions({ jobId, status, toggleStatusAction, deleteAction }: 
             {status === "draft" && (
               <button
                 type="button"
-                onClick={() => { toggleStatusAction(jobId, "active"); setOpen(false); }}
+                onClick={async () => { try { await toggleStatusAction(jobId, "active"); } catch {} setOpen(false); }}
                 className="w-full flex items-center gap-2 px-sm py-2 text-sm text-text-secondary hover:bg-surface-container-low transition-colors"
               >
                 <span className="material-symbols-outlined text-[16px]">play_circle</span>

@@ -22,12 +22,17 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 async function getExtractor(): Promise<Extractor> {
   if (!extractorPromise) {
     extractorPromise = (async () => {
-      const { env, pipeline } = await import("@xenova/transformers");
+      try {
+        const { env, pipeline } = await import("@xenova/transformers");
 
-      env.cacheDir = process.env.TRANSFORMERS_CACHE_DIR ?? "/tmp/transformers-cache";
+        env.cacheDir = process.env.TRANSFORMERS_CACHE_DIR ?? "/tmp/transformers-cache";
 
-      const extractor = (await pipeline("feature-extraction", MODEL_ID)) as Extractor;
-      return extractor;
+        const extractor = (await pipeline("feature-extraction", MODEL_ID)) as Extractor;
+        return extractor;
+      } catch (error) {
+        extractorPromise = null;
+        throw error;
+      }
     })();
   }
   return extractorPromise;

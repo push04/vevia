@@ -2,10 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+const ALLOWED_REDIRECTS = ["/candidate/dashboard", "/dashboard", "/candidate/login"];
+
 export async function GET(req: NextRequest) {
-  const { searchParams } = req.nextUrl;
+  const { searchParams, origin } = req.nextUrl;
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/candidate/dashboard";
+  let next = searchParams.get("next") ?? "/candidate/dashboard";
+
+  // Validate redirect target to prevent open redirect
+  if (next) {
+    try {
+      const parsed = new URL(next, origin);
+      if (parsed.origin !== origin || !ALLOWED_REDIRECTS.includes(parsed.pathname)) {
+        next = "/candidate/dashboard";
+      }
+    } catch {
+      next = "/candidate/dashboard";
+    }
+  }
 
   if (!code) {
     return NextResponse.redirect(new URL("/candidate/login?error=no_code", req.url));

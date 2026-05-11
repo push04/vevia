@@ -14,7 +14,9 @@ function slugify(input: string) {
 }
 
 function randomSuffix() {
-  return Math.random().toString(36).slice(2, 8);
+  const bytes = new Uint8Array(4);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("").slice(0, 6);
 }
 
 const JobCreateSchema = z

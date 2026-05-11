@@ -28,7 +28,6 @@ function isActive(pathname: string, href: string) {
 
 export function DashboardShell(props: {
   children: React.ReactNode;
-  headerTitle?: string;
   userLabel: string;
   orgLabel: string | null;
 }) {

@@ -1,9 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 export function ShareLinkButton({ slug, size = "md" }: { slug: string; size?: "sm" | "md" }) {
   const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => {
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, []);
 
   const handleCopy = () => {
     const url = `${window.location.origin}/apply/${slug}`;
@@ -13,7 +18,8 @@ export function ShareLinkButton({ slug, size = "md" }: { slug: string; size?: "s
       // clipboard write may fail in insecure contexts
     }
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setCopied(false), 2000);
   };
 
   if (size === "sm") {
