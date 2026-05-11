@@ -27,10 +27,10 @@ export default async function CandidateDetailPage({ params }: { params: Promise<
     .eq("candidate_id", id)
     .order("applied_at", { ascending: false });
 
-  const education: { degree?: string; field?: string; institution?: string; year?: number; percentage_or_cgpa?: string }[] =
-    Array.isArray(candidate.education) ? (candidate.education as any) : [];
-  const workExp: { company?: string; title?: string; start_date?: string; end_date?: string; duration_months?: number; key_responsibilities?: string[] }[] =
-    Array.isArray(candidate.work_experience) ? (candidate.work_experience as any) : [];
+  type Edu = { degree?: string; field?: string; institution?: string; year?: number; percentage_or_cgpa?: string };
+  type Work = { company?: string; title?: string; start_date?: string; end_date?: string; duration_months?: number; key_responsibilities?: string[] };
+  const education: Edu[] = Array.isArray(candidate.education) ? candidate.education as unknown as Edu[] : [];
+  const workExp: Work[] = Array.isArray(candidate.work_experience) ? candidate.work_experience as unknown as Work[] : [];
 
   const statusColor: Record<string, string> = {
     applied: "bg-blue-100 text-blue-700",

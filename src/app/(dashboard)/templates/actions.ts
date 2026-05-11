@@ -30,7 +30,7 @@ export async function createJobFromTemplateAction(formData: FormData) {
       screening_questions: role.screening_questions ?? [],
       status: "draft",
       public_slug: slug,
-    } as any)
+    } satisfies Record<string, unknown>)
     .select()
     .single();
 

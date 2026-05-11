@@ -195,11 +195,11 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
             </dl>
           </div>
 
-          {(job.screening_questions as any)?.length > 0 && (
+          {Array.isArray(job.screening_questions) && job.screening_questions.length > 0 && (
             <div className="bg-surface rounded-2xl border border-outline-variant p-md shadow-sm">
               <h3 className="font-semibold text-primary mb-sm">Screening questions</h3>
               <ul className="space-y-xs">
-                {(job.screening_questions as any).slice(0, 5).map((q: any, i: number) => (
+                {job.screening_questions.slice(0, 5).map((q: { q: string }, i: number) => (
                   <li key={i} className="text-xs text-text-secondary leading-relaxed">
                     {i + 1}. {q.q}
                   </li>

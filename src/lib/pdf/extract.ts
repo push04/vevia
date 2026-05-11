@@ -85,9 +85,9 @@ function ensureBrowserGlobals(): void {
   }
 }
 
-function ensureTextEncoder(): void {
+async function ensureTextEncoder(): Promise<void> {
   if (typeof (globalThis as Record<string, unknown>).TextEncoder === "undefined") {
-    const { TextEncoder, TextDecoder } = require("util") as {
+    const { TextEncoder, TextDecoder } = await import("util") as {
       TextEncoder: typeof globalThis.TextEncoder;
       TextDecoder: typeof globalThis.TextDecoder;
     };
@@ -102,7 +102,7 @@ export async function extractTextFromFile(
 ): Promise<string> {
   if (mimeType === "application/pdf") {
     ensureBrowserGlobals();
-    ensureTextEncoder();
+    await ensureTextEncoder();
 
     const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
 
@@ -110,7 +110,7 @@ export async function extractTextFromFile(
     if (
       typeof (globalThis as Record<string, unknown>).pdfjsWorker === "undefined"
     ) {
-      // @ts-ignore - pdf.worker.mjs has no type declarations
+      // @ts-expect-error - pdf.worker.mjs has no type declarations
       const workerModule = await import("pdfjs-dist/legacy/build/pdf.worker.mjs");
       (globalThis as Record<string, unknown>).pdfjsWorker = workerModule;
     }
