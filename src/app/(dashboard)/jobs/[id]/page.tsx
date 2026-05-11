@@ -199,7 +199,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
             <div className="bg-surface rounded-2xl border border-outline-variant p-md shadow-sm">
               <h3 className="font-semibold text-primary mb-sm">Screening questions</h3>
               <ul className="space-y-xs">
-                {job.screening_questions.slice(0, 5).map((q: { q: string }, i: number) => (
+                {(job.screening_questions as { q: string }[]).slice(0, 5).map((q, i) => (
                   <li key={i} className="text-xs text-text-secondary leading-relaxed">
                     {i + 1}. {q.q}
                   </li>
