@@ -80,7 +80,8 @@ export async function handleApply(req: NextRequest, slug: string) {
       // embedding failure is non-fatal; resume data still stored
     }
 
-    const resumePath = `resumes/${Date.now()}-${file.name}`;
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const resumePath = `resumes/${job.org_id}/${Date.now()}-${safeName}`;
     const uploadRes = await supabase.storage
       .from("vevia-files")
       .upload(resumePath, fileBuffer, { contentType: file.type, upsert: false });
@@ -109,18 +110,34 @@ export async function handleApply(req: NextRequest, slug: string) {
     };
 
     if (candidateEmail) {
-      // Use upsert with email as conflict target to avoid race conditions
-      const { data: upserted, error: upsertErr } = await supabase
+      // Find existing candidate in this org, or create new one
+      const { data: existing } = await supabase
         .from("candidates")
-        .upsert({
-          org_id: job.org_id,
-          email: candidateEmail,
-          ...candidateFields,
-        }, { onConflict: "email", ignoreDuplicates: false })
         .select("id")
-        .single();
-      if (upsertErr) throw new Error(upsertErr.message);
-      candidateId = upserted.id;
+        .eq("email", candidateEmail)
+        .eq("org_id", job.org_id)
+        .maybeSingle();
+
+      let candidateRow: { id: string };
+      if (existing) {
+        const { data: updated, error: updateErr } = await supabase
+          .from("candidates")
+          .update(candidateFields)
+          .eq("id", existing.id)
+          .select("id")
+          .single();
+        if (updateErr) throw new Error(updateErr.message);
+        candidateRow = updated;
+      } else {
+        const { data: inserted, error: insertErr } = await supabase
+          .from("candidates")
+          .insert({ org_id: job.org_id, email: candidateEmail, ...candidateFields })
+          .select("id")
+          .single();
+        if (insertErr) throw new Error(insertErr.message);
+        candidateRow = inserted;
+      }
+      candidateId = candidateRow.id;
     } else {
       const { data: inserted, error: insertErr } = await supabase
         .from("candidates")

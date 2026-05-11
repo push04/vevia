@@ -19,7 +19,7 @@ describe("/api/evaluate-response", () => {
 
     const req = new Request("http://localhost/api/evaluate-response", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", authorization: "Bearer test-vevia-token" },
       body: JSON.stringify({
         question: "Q",
         questionType: "short_text",

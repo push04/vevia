@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const file = formData.get("resume");
     const jobId = (formData.get("job_id") as string | null) ?? null;
+    const orgId = (formData.get("org_id") as string | null) ?? null;
     const email = (formData.get("email") as string | null) ?? null;
     if (!(file instanceof File)) {
       return NextResponse.json(
@@ -55,8 +56,13 @@ export async function POST(req: NextRequest) {
 
     // Optional: persist into Supabase (requires service role key)
     if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      if (!orgId) {
+        return NextResponse.json({ success: false, error: "Missing org_id" }, { status: 400 });
+      }
+
       const supabase = createAdminClient();
-      resumePath = `resumes/${Date.now()}-${file.name}`;
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      resumePath = `resumes/${orgId}/${Date.now()}-${safeName}`;
 
       const uploadRes = await supabase.storage
         .from("vevia-files")
@@ -67,6 +73,7 @@ export async function POST(req: NextRequest) {
         .from("candidates")
         .upsert(
           {
+            org_id: orgId,
             full_name: parsed.full_name,
             email: email || parsed.email,
             phone: parsed.phone,
@@ -118,11 +125,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       parsed,
-      rawTextPreview: rawText.slice(0, 500),
       embeddingDims: embedding?.length ?? 0,
       resumePath,
-      candidate,
-      application,
+      candidate: candidate ? { id: (candidate as { id: string }).id } : null,
+      application: application ? { id: (application as { id: string }).id } : null,
     });
   } catch (error) {
     return NextResponse.json(

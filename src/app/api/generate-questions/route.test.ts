@@ -23,7 +23,7 @@ describe("/api/generate-questions", () => {
 
     const req = new Request("http://localhost/api/generate-questions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", authorization: "Bearer test-vevia-token" },
       body: JSON.stringify({
         jobTitle: "SFE",
         jobDescription: "desc",

@@ -47,6 +47,7 @@ describe("/api/parse-resume", () => {
 
     const req = new Request("http://localhost/api/parse-resume", {
       method: "POST",
+      headers: { authorization: "Bearer test-vevia-token" },
       body: fd,
     });
 

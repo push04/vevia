@@ -10,12 +10,13 @@ export function ShareLinkButton({ slug, size = "md" }: { slug: string; size?: "s
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, []);
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     const url = `${window.location.origin}/apply/${slug}`;
     try {
-      navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(url);
     } catch {
       // clipboard write may fail in insecure contexts
+      return;
     }
     setCopied(true);
     if (timerRef.current) clearTimeout(timerRef.current);

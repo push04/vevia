@@ -41,8 +41,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Missing org_id" }, { status: 400 });
     }
 
-    const limit = Math.min(Math.max(Number(url.searchParams.get("limit") ?? 50), 1), 200);
-    const offset = Math.max(Number(url.searchParams.get("offset") ?? 0), 0);
+    const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 50, 1), 200);
+    const offset = Math.max(Number(url.searchParams.get("offset")) || 0, 0);
     const status = url.searchParams.get("status")?.trim() ?? "";
 
     const supabase = createAdminClient();

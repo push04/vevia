@@ -13,89 +13,97 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ applicationId: string }> },
 ) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { applicationId } = await params;
-  const admin = createAdminClient();
+    const { applicationId } = await params;
+    const admin = createAdminClient();
 
-  const { data: app, error } = await admin
-    .from("applications")
-    .select(`
-      id, screening_answers, screening_score,
-      candidate_id,
-      candidate:candidates(email),
-      job:jobs(id, title, screening_questions)
-    `)
-    .eq("id", applicationId)
-    .single();
+    const { data: app, error } = await admin
+      .from("applications")
+      .select(`
+        id, screening_answers, screening_score,
+        candidate_id,
+        candidate:candidates(email),
+        job:jobs(id, title, screening_questions)
+      `)
+      .eq("id", applicationId)
+      .single();
 
-  if (error || !app) {
-    return NextResponse.json({ error: "Application not found" }, { status: 404 });
-  }
-
-  const candidateEmail = (app.candidate as { email: string } | null)?.email;
-  if (!candidateEmail || candidateEmail !== user.email) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const { data: session } = await admin
-    .from("screening_sessions")
-    .select("*")
-    .eq("application_id", applicationId)
-    .eq("channel", "web")
-    .maybeSingle();
-
-  const questions = ((app.job as Record<string, unknown>)?.screening_questions ?? []) as { q: string; type: string; options?: { id: string; title: string; ideal: boolean }[] }[];
-  const existingAnswers = (app.screening_answers ?? []) as { question: string }[];
-
-  const answeredQuestions = new Set(existingAnswers.map((a: { question: string }) => a.question));
-  const unansweredIndices: number[] = [];
-  for (let i = 0; i < questions.length; i++) {
-    if (!answeredQuestions.has(questions[i].q)) {
-      unansweredIndices.push(i);
+    if (error || !app) {
+      return NextResponse.json({ error: "Application not found" }, { status: 404 });
     }
-  }
 
-  return NextResponse.json({
-    applicationId: app.id,
-    jobTitle: (app.job as Record<string, unknown>)?.title,
-    questions,
-    existingAnswers,
-    unansweredIndices,
-    session,
-    screeningScore: app.screening_score,
-  });
+    const candidateEmail = (app.candidate as { email: string } | null)?.email;
+    if (!candidateEmail || candidateEmail !== user.email) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const { data: session } = await admin
+      .from("screening_sessions")
+      .select("*")
+      .eq("application_id", applicationId)
+      .eq("channel", "web")
+      .maybeSingle();
+
+    const questions = ((app.job as Record<string, unknown>)?.screening_questions ?? []) as { q: string; type: string; options?: { id: string; title: string; ideal: boolean }[] }[];
+    const existingAnswers = (app.screening_answers ?? []) as { question: string }[];
+
+    const answeredQuestions = new Set(existingAnswers.map((a: { question: string }) => a.question));
+    const unansweredIndices: number[] = [];
+    for (let i = 0; i < questions.length; i++) {
+      if (!answeredQuestions.has(questions[i].q)) {
+        unansweredIndices.push(i);
+      }
+    }
+
+    return NextResponse.json({
+      applicationId: app.id,
+      jobTitle: (app.job as Record<string, unknown>)?.title,
+      questions,
+      existingAnswers,
+      unansweredIndices,
+      session,
+      screeningScore: app.screening_score,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Unknown error" },
+      { status: 500 },
+    );
+  }
 }
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ applicationId: string }> },
 ) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { applicationId } = await params;
-  const parsed = PostActionSchema.safeParse(await req.json());
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid body", issues: parsed.error.issues }, { status: 400 });
-  }
-  const admin = createAdminClient();
+    const { applicationId } = await params;
+    const parsed = PostActionSchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid body", issues: parsed.error.issues }, { status: 400 });
+    }
+    const admin = createAdminClient();
 
-  const { data: ownershipCheck } = await admin
-    .from("applications")
-    .select("candidate_id, candidate:candidates(email)")
-    .eq("id", applicationId)
-    .single();
+    const { data: ownershipCheck } = await admin
+      .from("applications")
+      .select("candidate_id, candidate:candidates(email)")
+      .eq("id", applicationId)
+      .single();
 
-  const candidateEmail = (ownershipCheck?.candidate as { email: string } | null)?.email;
-  if (!candidateEmail || candidateEmail !== user.email) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+    const candidateEmail = (ownershipCheck?.candidate as { email: string } | null)?.email;
+    if (!candidateEmail || candidateEmail !== user.email) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
-  const { action } = parsed.data;
+    const { action } = parsed.data;
 
   if (action === "start") {
     const { data: existing } = await admin
@@ -198,4 +206,10 @@ export async function POST(
   }
 
   return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Unknown error" },
+      { status: 500 },
+    );
+  }
 }

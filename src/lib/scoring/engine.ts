@@ -34,10 +34,10 @@ export function adjustWeights(
   return weights;
 }
 
-export async function calculateCompositeScore(applicationId: string) {
+export async function calculateCompositeScore(applicationId: string, orgId?: string) {
   const supabase = createAdminClient();
 
-  const { data: app, error } = await supabase
+  let query = supabase
     .from("applications")
     .select(
       `
@@ -46,8 +46,10 @@ export async function calculateCompositeScore(applicationId: string) {
       candidate:candidates(id, resume_embedding, resume_raw_text)
     `,
     )
-    .eq("id", applicationId)
-    .single();
+    .eq("id", applicationId);
+  if (orgId) query = query.eq("org_id", orgId);
+
+  const { data: app, error } = await query.single();
 
   if (error || !app) throw new Error(error?.message ?? "Application not found");
   if (!app.job || !app.candidate) throw new Error("Missing job/candidate");
@@ -106,7 +108,7 @@ export async function calculateCompositeScore(applicationId: string) {
   }
 
   // Fallback: if RPC doesn't exist, apply updates sequentially
-  await supabase
+  const { error: fallbackUpdateErr } = await supabase
     .from("applications")
     .update({
       resume_score: resumeScore,
@@ -117,7 +119,9 @@ export async function calculateCompositeScore(applicationId: string) {
     })
     .eq("id", applicationId);
 
-  await supabase.from("audit_logs").insert({
+  if (fallbackUpdateErr) throw new Error(fallbackUpdateErr.message);
+
+  const { error: auditErr } = await supabase.from("audit_logs").insert({
     org_id: app.org_id,
     actor_type: "ai",
     actor_id: "groq-llm",
@@ -126,6 +130,8 @@ export async function calculateCompositeScore(applicationId: string) {
     target_id: app.id,
     metadata: { composite, model: process.env.GROQ_MODEL_LARGE },
   });
+
+  if (auditErr) throw new Error(auditErr.message);
 
   return { composite, resumeScore, screeningScore, testScore, videoScore, weights };
 }

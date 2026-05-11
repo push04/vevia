@@ -57,12 +57,19 @@ export function getEnv(): Env {
   return cachedEnv;
 }
 
+export function resetEnv(): void {
+  cachedEnv = null;
+}
+
 export function requireEnv(key: keyof Env): string {
-  const env = getEnv();
-  const value = env[key];
+  const value = process.env[key as string];
   const parsed = NonEmpty.safeParse(value);
   if (!parsed.success) {
     throw new Error(`Missing required environment variable: ${String(key)}`);
   }
   return parsed.data;
+}
+
+export function validateEnv(): void {
+  getEnv();
 }

@@ -148,11 +148,8 @@ export function PipelineView(props: {
 
                         <div className="flex items-center gap-2xs">
                           <Link
-                            className="inline-flex border border-outline-variant text-primary font-label text-label px-sm py-3xs rounded hover:bg-surface-container-low transition-colors"
-                            href={`/candidates/${a.candidate?.id ?? ""}`}
-                            onClick={(e) => {
-                              if (!a.candidate?.id) e.preventDefault();
-                            }}
+                            className={`inline-flex border border-outline-variant text-primary font-label text-label px-sm py-3xs rounded hover:bg-surface-container-low transition-colors ${!a.candidate?.id ? "pointer-events-none opacity-50" : ""}`}
+                            href={a.candidate?.id ? `/candidates/${a.candidate.id}` : "#"}
                           >
                             View
                           </Link>

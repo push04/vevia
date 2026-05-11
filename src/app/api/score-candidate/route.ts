@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await calculateCompositeScore(parsed.data.applicationId);
+    const { applicationId, org_id } = parsed.data;
+    const result = await calculateCompositeScore(applicationId, org_id);
     return NextResponse.json({ success: true, result });
   } catch (error) {
     return NextResponse.json(

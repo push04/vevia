@@ -37,20 +37,28 @@ Respond with ONLY the JSON object, no markdown, no explanation.`,
   const raw = result.choices[0]?.message?.content ?? "{}";
   
   try {
-    const parsed = JSON.parse(raw.trim()) as GeneratedJobDetails;
+    const parsed = JSON.parse(raw.trim());
+    if (typeof parsed !== "object" || parsed === null) throw new Error("AI returned non-object JSON");
+    const result = parsed as GeneratedJobDetails;
     return {
-      description: parsed.description ?? "",
-      requirements: Array.isArray(parsed.requirements) ? parsed.requirements : [],
+      description: typeof result.description === "string" ? result.description : "",
+      requirements: Array.isArray(result.requirements) ? result.requirements : [],
     };
   } catch {
     // Fallback: try to extract JSON from markdown code block
     const match = raw.match(/```(?:json)?\s*([\s\S]+?)\s*```/);
     if (match) {
-      const parsed = JSON.parse(match[1]) as GeneratedJobDetails;
-      return {
-        description: parsed.description ?? "",
-        requirements: Array.isArray(parsed.requirements) ? parsed.requirements : [],
-      };
+      try {
+        const parsed = JSON.parse(match[1]);
+        if (typeof parsed !== "object" || parsed === null) throw new Error("AI returned non-object JSON");
+        const result = parsed as GeneratedJobDetails;
+        return {
+          description: typeof result.description === "string" ? result.description : "",
+          requirements: Array.isArray(result.requirements) ? result.requirements : [],
+        };
+      } catch {
+        throw new Error("AI returned an unparseable response. Please try again.");
+      }
     }
     throw new Error("AI returned an unparseable response. Please try again.");
   }

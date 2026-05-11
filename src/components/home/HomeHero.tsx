@@ -63,6 +63,8 @@ function AnimatedCounter({ target, suffix }: { target: number; suffix: string })
   const ref = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry.isIntersecting) return;
@@ -74,11 +76,10 @@ function AnimatedCounter({ target, suffix }: { target: number; suffix: string })
           if (start >= target) { setVal(target); clearInterval(timer); }
           else setVal(Math.floor(start));
         }, 30);
-        return () => clearInterval(timer);
       },
-      { threshold: 0.3 }
+      { threshold: 0.3 },
     );
-    if (ref.current) observer.observe(ref.current);
+    observer.observe(el);
     return () => observer.disconnect();
   }, [target]);
 

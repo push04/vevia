@@ -22,15 +22,14 @@ export function ApplyForm({ job, slug }: { job: Job; slug: string }) {
   const [fileName, setFileName] = useState<string | null>(null);
   const [submittedEmail, setSubmittedEmail] = useState<string>("");
   const fileRef = useRef<HTMLInputElement>(null);
-  const mountedRef = useRef(true);
+  const ctrlRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    return () => { mountedRef.current = false; };
+    return () => { ctrlRef.current?.abort(); };
   }, []);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!mountedRef.current) return;
     setStep("uploading");
     setError(null);
 
@@ -39,14 +38,14 @@ export function ApplyForm({ job, slug }: { job: Job; slug: string }) {
       const data = new FormData(form);
       const emailField = form.querySelector<HTMLInputElement>("input[name=email]");
       setSubmittedEmail(emailField?.value ?? "");
-      const ctrl = new AbortController();
-      const res = await fetch(`/api/apply/${slug}`, { method: "POST", body: data, signal: ctrl.signal });
-      if (!mountedRef.current) return;
+      ctrlRef.current?.abort();
+      ctrlRef.current = new AbortController();
+      const res = await fetch(`/api/apply/${slug}`, { method: "POST", body: data, signal: ctrlRef.current.signal });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error ?? "Application failed");
-      if (mountedRef.current) setStep("success");
+      setStep("success");
     } catch (err) {
-      if (!mountedRef.current) return;
+      if ((err as Error)?.name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Something went wrong");
       setStep("error");
     }
