@@ -51,8 +51,17 @@ DO $$ BEGIN
 END $$;
 
 -- =============================================================
--- 4. Vector index on jobs.jd_embedding (missing from 000)
+-- 4. Add jd_embedding column if missing, then vector index
 -- =============================================================
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'jobs' AND column_name = 'jd_embedding'
+  ) THEN
+    ALTER TABLE jobs ADD COLUMN jd_embedding VECTOR(384);
+  END IF;
+END $$;
+
 DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_indexes WHERE indexname = 'idx_jobs_jd_embedding'
